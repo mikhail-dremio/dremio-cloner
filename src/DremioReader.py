@@ -320,7 +320,9 @@ class DremioReader:
 			return parse_sql.tables_in_query(vds['sql'])
 		else:
 			graph = self._dremio_env.get_catalog_entity_graph_by_id(vds['id'])
-			self._logger.fatal("This version of Dremio API does not support Graph functionality. Try to set 'graph_api_support' to False in the job configuration.")
+			if graph is None:
+				self._logger.error("Could not receive Graph via API. Try to set 'graph_api_support' to False in the job configuration.")
+				return parse_sql.tables_in_query(vds['sql'])
 			vds_parent_list = []
 			for parent in graph['parents']:
 				vds_parent_list.append(self._utils.normalize_path(parent['path']))

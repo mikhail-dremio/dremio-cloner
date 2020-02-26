@@ -77,7 +77,7 @@ class DremioClonerFilter():
 		return False
 
 	def match_vds_filter(self, vds, loginfo = True):
-		if self._match_path(self._config._space_filter_re, self._config._space_exclude_filter_re, self._config._space_folder_filter_re, self._config._space_folder_exclude_filter_re, self._config._vds_filter_re, self._config.vds_exclude_filter_re, vds):
+		if self._match_path(self._config._space_filter_re, self._config._space_exclude_filter_re, self._config._space_folder_filter_re, self._config._space_folder_exclude_filter_re, self._config._vds_filter_re, self._config._vds_exclude_filter_re, vds):
 			return True
 		if loginfo:
 			self._logger.debug("match_vds_filter: skipping VDS " + vds['path'][-1] if 'path' in vds else vds['name'] + " as per job configuration")
