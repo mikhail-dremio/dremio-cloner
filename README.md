@@ -235,9 +235,7 @@ Note, that this command does not provide any option for Scope definition. Please
 | _logging.level_ | Defines logging level: DEBUG, INFO, WARN, ERROR |
 | _logging.format_ | Logging format. For example: &quot;%(levelname)s:%(asctime)s:%(message)s&quot; |
 | _logging.filename_ | Filename for logging. File will be appended if exists. If this option is omitted, standard output will be used for logging. |
-| _logging.verbose_ | Default False. Produce verbose logging:
-- --Log entire entity definitions.
- |
+| _logging.verbose_ | Default False. Produce verbose logging such as log entire entity definitions if set to True. |
 | Miscellaneous options |
 | _max\_errors_ | Defines a number of errors at which processing will be terminated. |
 | _http\_timeout_ | Timeout for each API call. This parameter might become important in certain situations when Sources defined in Dremio are not available.   |
@@ -262,35 +260,17 @@ Note, that this command does not provide any option for Scope definition. Please
 | _vds.exclude.filter_ | A filter that defines what VDSs will be **excluded** into processing. &quot;\*&quot; will exclude all VDSs. Empty field will include all VDSs. Star may be used multiple times in the filter to define a pattern. Works in logical AND with _vds.filter_. |
 | Scope of user and group processing |
 | _user.process\_mode_ | Determines if users will be created in the target Dremio Environment if they are referenced in the source JSON file but not in the target environment. Applicable for &quot;put&quot; command only. However, user creation is not possible with the current Dremio API. This parameter can only have a single value _skip_. |
-| _space.ignore\_missing\_acl\_user_ | These configuration parameters define if Dremio Cloner ignores a situation when a user or a group is defined in an ACL in the source JSON file but is not present in the target Dremio Environment. This situation is a potential security risk as an ACL may be created with no limitations in the target environment when all referenced users and groups cannot be found. Default value is False. |
-| _space.ignore\_missing\_acl\_group_ |
-| _folder.ignore\_missing\_acl\_user_ |
-| _folder.ignore\_missing\_acl\_group_ |
-| _source.ignore\_missing\_acl\_user_ |
-| _source.ignore\_missing\_acl\_group_ |
-| _pds.ignore\_missing\_acl\_user_ |
-| _pds.ignore\_missing\_acl\_group_ |
-| _vds.ignore\_missing\_acl\_user_ |
-| _vds.ignore\_missing\_acl\_group_ |
+| _space.ignore\_missing\_acl\_user __space.ignore\_missing\_acl\_group__ folder.ignore\_missing\_acl\_user __folder.ignore\_missing\_acl\_group__ source.ignore\_missing\_acl\_user __source.ignore\_missing\_acl\_group__ pds.ignore\_missing\_acl\_user __pds.ignore\_missing\_acl\_group__ vds.ignore\_missing\_acl\_user__vds.ignore\_missing\_acl\_group_ | These configuration parameters define if Dremio Cloner ignores a situation when a user or a group is defined in an ACL in the source JSON file but is not present in the target Dremio Environment. This situation is a potential security risk as an ACL may be created with no limitations in the target environment when all referenced users and groups cannot be found. Default value is False. |
 | Scope of object-level processing |
-| _space.process\_mode_ | Defines whether Dremio Cloner will
-- --insert new objects only or
-- --update existing objects only or
-- --do an upsert.
-These parameters can be set to: _skip_, _create\_only_, _update\_only_, _create\_overwrite_.  _skip_ will prevent any changes to the target Dremio Environment for the specified object type.  Note, _pds.process\_mode_ can only take _skip_ and _promote._ An example of usage would be the following settings:_space.process\_mode: skip __folder.process\_mode: skip__ vds.process\_mode: create\_overwrite_This configuration will not update any Space or Folder. However, it will update VDSs as per VDS related filters. |
-| folder.process\_mode |
-| source.process\_mode |
-| pds.process\_mode |
-| vds.process\_mode |
-| reflection.process\_mode |
-| vds.dependencies.process\_mode | Possible values: _ignore_, _get_. Default _ignore_. If set to _get_, Dremio Cloner  will collect information on all decencies throughout the object hierarchy (VDS and PDS) required for each VDS that satisfies VDS filter criteria. |
+| _space.process\_mode __folder.process\_mode__ source.process\_mode __pds.process\_mode__ vds.process\_mode__reflection.process\_mode_ | Defines whether Dremio Cloner will 1) insert new objects only or 2) update existing objects only or 3) do an upsert. These parameters can be set to: _skip_, _create\_only_, _update\_only_, _create\_overwrite_.  _skip_ will prevent any changes to the target Dremio Environment for the specified object type.  Note, _pds.process\_mode_ can only take _skip_ and _promote._ An example of usage would be the following settings:_space.process\_mode: skip__folder.process\_mode: skip__vds.process\_mode: create\_overwrite_This configuration will not update any Space or Folder. However, it will update VDSs as per VDS related filters. |
+| _vds.dependencies.process\_mode_ | Possible values: _ignore_, _get_. Default _ignore_. If set to _get_, Dremio Cloner  will collect information on all decencies throughout the object hierarchy (VDS and PDS) required for each VDS that satisfies VDS filter criteria. |
 | Cascade-acl specific parameters |
-| space.cascade-acl-origin.override-object | If specified, overrides default behavior for Space hierarchy and an ACL of the object specified in this parameter will be used through **all Spaces all hierarchies** instead of the respective Spaces&#39; ACLs. |
-| source.cascade-acl-origin.override-object | If specified, overrides default behavior for Source hierarchy and an ACL of the object specified in this parameter will be used through **all Source all hierarchies** instead of the respective Sources&#39; ACLs. |
-| space.folder.cascade-acl-origin.filter | If specified, overrides default behavior for Space hierarchy and an ACLs of the Folders selected by this will be used through **its Folder hierarchy** instead of the respective Source&#39;s ACL. |
+| _space.cascade-acl-origin.override-object_ | If specified, overrides default behavior for Space hierarchy and an ACL of the object specified in this parameter will be used through **all Spaces all hierarchies** instead of the respective Spaces&#39; ACLs. |
+| _source.cascade-acl-origin.override-object_ | If specified, overrides default behavior for Source hierarchy and an ACL of the object specified in this parameter will be used through **all Source all hierarchies** instead of the respective Sources&#39; ACLs. |
+| _space.folder.cascade-acl-origin.filter_ | If specified, overrides default behavior for Space hierarchy and an ACLs of the Folders selected by this will be used through **its Folder hierarchy** instead of the respective Source&#39;s ACL. |
 | Report-acl specific parameters |
-| report.csv.delimiter | A field delimiter used to generate a report. |
-| report.csv.newline | A new line delimiter used to generate a report. |
+| _report.csv.delimiter_ | A field delimiter used to generate a report. |
+| _report.csv.newline_ | A new line delimiter used to generate a report. |
 
 
 
