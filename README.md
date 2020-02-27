@@ -224,12 +224,12 @@ Note, that this command does not provide any option for Scope definition. Please
 
 | **Configuration Option** | **Description** |
 | --- | --- |
-| _endpoint_ | Defines Dremio API endpoint. For example, [http://localhost:9047/](http://localhost:9047/). Mandatory attribute. |
-| _username_ | Dremio user name. Must be an Admin. Mandatory attribute. |
-| _password_ | Dremio user password. Optional field. If not provided, CLI will request password at runtime. |
-| _verify\_ssl_ | If set to False, Dremio Cloner will not validate SSL certificate of the Dremio Environment. Default is True. |
-| _is\_community\_edition_ | Set it to True if reading Dremio CE. Writing to Dremio CE is not supported. |
-| _graph\_api\_support_ | Dremio Graph API is only available in EE starting version 4.0.0. Default value is False. |
+| endpoint | Defines Dremio API endpoint. For example, [http://localhost:9047/](http://localhost:9047/). Mandatory attribute. |
+| username | Dremio user name. Must be an Admin. Mandatory attribute. |
+| password | Dremio user password. Optional field. If not provided, CLI will request password at runtime. |
+| verify\_ssl | If set to False, Dremio Cloner will not validate SSL certificate of the Dremio Environment. Default is True. |
+| is\_community\_edition | Set it to True if reading Dremio CE. Writing to Dremio CE is not supported. |
+| graph\_api\_support | Dremio Graph API is only available in EE starting version 4.0.0. Default value is False. |
 
 ## _Target_ or _source_ section, when defined with a file name
 
@@ -241,78 +241,78 @@ Note, that this command does not provide any option for Scope definition. Please
 
 | **Configuration Option** | **Description** |
 | --- | --- |
-| _logging.level_ | Defines logging level: DEBUG, INFO, WARN, ERROR |
-| _logging.format_ | Logging format. For example: &quot;%(levelname)s:%(asctime)s:%(message)s&quot; |
-| _logging.filename_ | Filename for logging. File will be appended if exists. If this option is omitted, standard output will be used for logging. |
-| _logging.verbose_ | Default False. Produce verbose logging such as log entire entity definitions if set to True. |
+| logging.level | Defines logging level: DEBUG, INFO, WARN, ERROR |
+| logging.format | Logging format. For example: &quot;%(levelname)s:%(asctime)s:%(message)s&quot; |
+| logging.filename | Filename for logging. File will be appended if exists. If this option is omitted, standard output will be used for logging. |
+| logging.verbose | Default False. Produce verbose logging such as log entire entity definitions if set to True. |
 
 ## Miscellaneous options
 
 | **Configuration Option** | **Description** |
 | --- | --- |
-| _max\_errors_ | Defines a number of errors at which processing will be terminated. |
-| _http\_timeout_ | Timeout for each API call. This parameter might become important in certain situations when Sources defined in Dremio are not available.   |
-| _dry\_run_ | Defines a Dremio Cloner execution that will not update a target Dremio environment. In conjunction with logging.level set to WARN allows to execute Dremio Cloner without an impact on the target environment and check the log file for all activities that would have been submitted to the target Dremio Environment otherwise. Respective log entries will include _dry\_run_ keyword. |
-| _vds.\_max\_hierarchy\_depth_ | Defines maximum level of VDS hierarchy supported by Dremio Cloner. It&#39;s a guard rail with default value of 100. |
+| max\_errors | Defines a number of errors at which processing will be terminated. |
+| http\_timeout | Timeout for each API call. This parameter might become important in certain situations when Sources defined in Dremio are not available.   |
+| dry\_run | Defines a Dremio Cloner execution that will not update a target Dremio environment. In conjunction with logging.level set to WARN allows to execute Dremio Cloner without an impact on the target environment and check the log file for all activities that would have been submitted to the target Dremio Environment otherwise. Respective log entries will include _dry\_run_ keyword. |
+| vds.\_max\_hierarchy\_depth | Defines maximum level of VDS hierarchy supported by Dremio Cloner. It&#39;s a guard rail with default value of 100. |
 
 ## Scope of Dremio Space processing
 
 | **Configuration Option** | **Description** |
 | --- | --- |
-| _space.filter_ | A filter that defines what Spaces will be **included** into processing. &quot;\*&quot; will include all Spaces. Empty field will exclude all Spaces. Star may be used multiple times in the filter to define a pattern. Works in logical AND with _space.exclude.filter_. |
-| _space.exclude.filter_ | A filter that defines what Spaces will be **excluded** into processing. &quot;\*&quot; will exclude all Spaces. Empty field will include all Spaces. Star may be used multiple times in the filter to define a pattern. Works in logical AND with _space.filter_. |
-| _space.folder.filter_ | A filter that defines what Space Folders will be **included** into processing. &quot;\*&quot; will include all Folders. Empty field will exclude all Folders. Star may be used multiple times in the filter to define a pattern. Works in logical AND with _space.folder_._exclude_._filter_. |
-| _space.folder.exclude.filter_ | A filter that defines what Space Folders will be **excluded** into processing. &quot;\*&quot; will exclude all Folders. Empty field will include all Spaces. Star may be used multiple times in the filter to define a pattern. Works in logical AND with _space.folder_._filter_. |
+| space.filter | A filter that defines what Spaces will be **included** into processing. &quot;\*&quot; will include all Spaces. Empty field will exclude all Spaces. Star may be used multiple times in the filter to define a pattern. Works in logical AND with _space.exclude.filter_. |
+| space.exclude.filter | A filter that defines what Spaces will be **excluded** into processing. &quot;\*&quot; will exclude all Spaces. Empty field will include all Spaces. Star may be used multiple times in the filter to define a pattern. Works in logical AND with _space.filter_. |
+| space.folder.filter | A filter that defines what Space Folders will be **included** into processing. &quot;\*&quot; will include all Folders. Empty field will exclude all Folders. Star may be used multiple times in the filter to define a pattern. Works in logical AND with _space.folder_._exclude_._filter_. |
+| space.folder.exclude.filter | A filter that defines what Space Folders will be **excluded** into processing. &quot;\*&quot; will exclude all Folders. Empty field will include all Spaces. Star may be used multiple times in the filter to define a pattern. Works in logical AND with _space.folder_._filter_. |
 
 ## Scope of Dremio Source processing
 
 | **Configuration Option** | **Description** |
 | --- | --- |
-| _source.filter_ | A filter that defines what Sources will be **included** into processing. &quot;\*&quot; will include all Sources. Empty field will exclude all Sources. Star may be used multiple times in the filter to define a pattern. Works in logical AND with _source.exclude.filter_. |
-| _source.exclude.filter_ | A filter that defines what Spaces will be **excluded** into processing. &quot;\*&quot; will exclude all Spaces. Empty field will include all Sources. Star may be used multiple times in the filter to define a pattern. Works in logical AND with _source.filter_. |
-| _source.folder.filter_ | A filter that defines what Source Folders will be **included** into processing. &quot;\*&quot; will include all Folders. Empty field will exclude all Folders. Star may be used multiple times in the filter to define a pattern. Works in logical AND with _source.exclude.filter_. |
-| _source.folder.exclude.filter_ | A filter that defines what Source Folders will be **excluded** into processing. &quot;\*&quot; will exclude all Folders. Empty field will include all Spaces. Star may be used multiple times in the filter to define a pattern. Works in logical AND with _source.filter_. |
+| source.filter | A filter that defines what Sources will be **included** into processing. &quot;\*&quot; will include all Sources. Empty field will exclude all Sources. Star may be used multiple times in the filter to define a pattern. Works in logical AND with _source.exclude.filter_. |
+| source.exclude.filter | A filter that defines what Spaces will be **excluded** into processing. &quot;\*&quot; will exclude all Spaces. Empty field will include all Sources. Star may be used multiple times in the filter to define a pattern. Works in logical AND with _source.filter_. |
+| source.folder.filter | A filter that defines what Source Folders will be **included** into processing. &quot;\*&quot; will include all Folders. Empty field will exclude all Folders. Star may be used multiple times in the filter to define a pattern. Works in logical AND with _source.exclude.filter_. |
+| source.folder.exclude.filter | A filter that defines what Source Folders will be **excluded** into processing. &quot;\*&quot; will exclude all Folders. Empty field will include all Spaces. Star may be used multiple times in the filter to define a pattern. Works in logical AND with _source.filter_. |
 
 ## Scope of Dremio PDS processing
 
 | **Configuration Option** | **Description** |
 | --- | --- |
-| _pds.filter_ | A filter that defines what PDSs will be **included** into processing. &quot;\*&quot; will include all PDSs. Empty field will exclude all PDSs. Star may be used multiple times in the filter to define a pattern. Works in logical AND with _pds.exclude.filter_. |
-| _pds.exclude.filter_ | A filter that defines what PDSs will be **excluded** into processing. &quot;\*&quot; will exclude all PDSs. Empty field will include all PDSs. Star may be used multiple times in the filter to define a pattern. Works in logical AND with _pds.filter_. |
-| _&quot;pds.list.useapi&quot;_ | Forces to use API for collecting list of PDSs if set to True. Default value is False which means that INFOMRATION\_SCHEMA will be utilized instead of API. False is a recommended value. |
+| pds.filter | A filter that defines what PDSs will be **included** into processing. &quot;\*&quot; will include all PDSs. Empty field will exclude all PDSs. Star may be used multiple times in the filter to define a pattern. Works in logical AND with _pds.exclude.filter_. |
+| pds.exclude.filter | A filter that defines what PDSs will be **excluded** into processing. &quot;\*&quot; will exclude all PDSs. Empty field will include all PDSs. Star may be used multiple times in the filter to define a pattern. Works in logical AND with _pds.filter_. |
+| pds.list.useapi | Forces to use API for collecting list of PDSs if set to True. Default value is False which means that INFOMRATION\_SCHEMA will be utilized instead of API. False is a recommended value. |
 
 ## Scope of Dremio VDS processing
 
 | **Configuration Option** | **Description** |
 | --- | --- |
-| _vds.filter_ | A filter that defines what VDSs will be **included** into processing. &quot;\*&quot; will include all VDSs. Empty field will exclude all VDSs. Star may be used multiple times in the filter to define a pattern. Works in logical AND with _vds.exclude.filter_. |
-| _vds.exclude.filter_ | A filter that defines what VDSs will be **excluded** into processing. &quot;\*&quot; will exclude all VDSs. Empty field will include all VDSs. Star may be used multiple times in the filter to define a pattern. Works in logical AND with _vds.filter_. |
+| vds.filter | A filter that defines what VDSs will be **included** into processing. &quot;\*&quot; will include all VDSs. Empty field will exclude all VDSs. Star may be used multiple times in the filter to define a pattern. Works in logical AND with _vds.exclude.filter_. |
+| vds.exclude.filter | A filter that defines what VDSs will be **excluded** into processing. &quot;\*&quot; will exclude all VDSs. Empty field will include all VDSs. Star may be used multiple times in the filter to define a pattern. Works in logical AND with _vds.filter_. |
 
 ## Scope of user and group processing
 
 | **Configuration Option** | **Description** |
 | --- | --- |
-| _user.process\_mode_ | Determines if users will be created in the target Dremio Environment if they are referenced in the source JSON file but not in the target environment. Applicable for &quot;put&quot; command only. However, user creation is not possible with the current Dremio API. This parameter can only have a single value _skip_. |
-| _&quot;space.ignore\_missing\_acl\_user&quot; __&quot;space.ignore\_missing\_acl\_group&quot;__&quot;folder.ignore\_missing\_acl\_user&quot; __&quot;folder.ignore\_missing\_acl\_group&quot;__&quot;source.ignore\_missing\_acl\_user&quot; __&quot;source.ignore\_missing\_acl\_group&quot;__&quot;pds.ignore\_missing\_acl\_user&quot; __&quot;pds.ignore\_missing\_acl\_group&quot;__&quot;vds.ignore\_missing\_acl\_user&quot;__&quot;vds.ignore\_missing\_acl\_group&quot;_ | These configuration parameters define if Dremio Cloner ignores a situation when a user or a group is defined in an ACL in the source JSON file but is not present in the target Dremio Environment. This situation is a potential security risk as an ACL may be created with no limitations in the target environment when all referenced users and groups cannot be found. Default value is False. |
+| user.process\_mode | Determines if users will be created in the target Dremio Environment if they are referenced in the source JSON file but not in the target environment. Applicable for &quot;put&quot; command only. However, user creation is not possible with the current Dremio API. This parameter can only have a single value _skip_. |
+| space.ignore\_missing\_acl\_user space.ignore\_missing\_acl\_group folder.ignore\_missing\_acl\_user folder.ignore\_missing\_acl\_group source.ignore\_missing\_acl\_user source.ignore\_missing\_acl\_group pds.ignore\_missing\_acl\_user pds.ignore\_missing\_acl\_group vds.ignore\_missing\_acl\_user vds.ignore\_missing\_acl\_group | These configuration parameters define if Dremio Cloner ignores a situation when a user or a group is defined in an ACL in the source JSON file but is not present in the target Dremio Environment. This situation is a potential security risk as an ACL may be created with no limitations in the target environment when all referenced users and groups cannot be found. Default value is False. |
 
 ## Scope of object-level processing
 
 | **Configuration Option** | **Description** |
 | --- | --- |
-| _space.process\_mode __folder.process\_mode__ source.process\_mode __pds.process\_mode__ vds.process\_mode__reflection.process\_mode_ | Defines whether Dremio Cloner will 1) insert new objects only or 2) update existing objects only or 3) do an upsert. These parameters can be set to: _skip_, _create\_only_, _update\_only_, _create\_overwrite_.  _skip_ will prevent any changes to the target Dremio Environment for the specified object type.  Note, _pds.process\_mode_ can only take _skip_ and _promote._ An example of usage would be the following settings:_space.process\_mode: skip__folder.process\_mode: skip__vds.process\_mode: create\_overwrite_This configuration will not update any Space or Folder. However, it will update VDSs as per VDS related filters. |
-| _vds.dependencies.process\_mode_ | Possible values: _ignore_, _get_. Default _ignore_. If set to _get_, Dremio Cloner  will collect information on all decencies throughout the object hierarchy (VDS and PDS) required for each VDS that satisfies VDS filter criteria. |
+| space.process\_mode folder.process\_mode source.process\_mode pds.process\_mode vds.process\_mode reflection.process\_mode | Defines whether Dremio Cloner will 1) insert new objects only or 2) update existing objects only or 3) do an upsert. These parameters can be set to: _skip_, _create\_only_, _update\_only_, _create\_overwrite_.  _skip_ will prevent any changes to the target Dremio Environment for the specified object type.  Note, _pds.process\_mode_ can only take _skip_ and _promote._ An example of usage would be the following settings:_space.process\_mode: skip __folder.process\_mode: skip__ vds.process\_mode: create\_overwrite_This configuration will not update any Space or Folder. However, it will update VDSs as per VDS related filters. |
+| vds.dependencies.process\_mode | Possible values: _ignore_, _get_. Default _ignore_. If set to _get_, Dremio Cloner  will collect information on all decencies throughout the object hierarchy (VDS and PDS) required for each VDS that satisfies VDS filter criteria. |
 
 ## Cascade-acl specific parameters
 
 | **Configuration Option** | **Description** |
 | --- | --- |
-| _space.cascade-acl-origin.override-object_ | If specified, overrides default behavior for Space hierarchy and an ACL of the object specified in this parameter will be used through **all Spaces all hierarchies** instead of the respective Spaces&#39; ACLs. |
-| _source.cascade-acl-origin.override-object_ | If specified, overrides default behavior for Source hierarchy and an ACL of the object specified in this parameter will be used through **all Source all hierarchies** instead of the respective Sources&#39; ACLs. |
-| _space.folder.cascade-acl-origin.filter_ | If specified, overrides default behavior for Space hierarchy and an ACLs of the Folders selected by this will be used through **its Folder hierarchy** instead of the respective Source&#39;s ACL. |
+| space.cascade-acl-origin.override-object | If specified, overrides default behavior for Space hierarchy and an ACL of the object specified in this parameter will be used through **all Spaces all hierarchies** instead of the respective Spaces&#39; ACLs. |
+| source.cascade-acl-origin.override-object | If specified, overrides default behavior for Source hierarchy and an ACL of the object specified in this parameter will be used through **all Source all hierarchies** instead of the respective Sources&#39; ACLs. |
+| space.folder.cascade-acl-origin.filter | If specified, overrides default behavior for Space hierarchy and an ACLs of the Folders selected by this will be used through **its Folder hierarchy** instead of the respective Source&#39;s ACL. |
 
 ## Report-acl specific parameters
 
 | **Configuration Option** | **Description** |
 | --- | --- |
-| _report.csv.delimiter_ | A field delimiter used to generate a report. |
-| _report.csv.newline_ | A new line delimiter used to generate a report. |
+| report.csv.delimiter | A field delimiter used to generate a report. |
+| report.csv.newline | A new line delimiter used to generate a report. |
