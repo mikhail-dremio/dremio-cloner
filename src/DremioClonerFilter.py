@@ -111,7 +111,7 @@ class DremioClonerFilter():
 			# Match root object (Space of Source)
 			if root_re.match(path[0]) is None:
 				return False
-			if root_exclusion_re is not None and root_exclusion_re.match(path[0]) is None:
+			if root_exclusion_re is not None and root_exclusion_re.match(path[0]) is not None:
 				return False
 			# Match object
 			if object_re is not None and object_re.match(self._utils.normalize_path(path[-1])) is None:
