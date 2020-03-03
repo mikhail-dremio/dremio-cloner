@@ -46,8 +46,11 @@ class DremioClonerUtils:
 				return str(entity['entityType']) + ":" + self.normalize_path(entity['path'])
 			else:
 				return self.normalize_path(entity['path'])
-		if 'entityType' in entity and 'name' in entity:
-			return str(entity['entityType']) + ":" + str(entity['name'])
+		if 'entityType' in entity:
+			if 'name' in entity:
+				return str(entity['entityType']) + ":" + str(entity['name'])
+			else:
+				return str(entity['entityType']) + ":" + str(entity['id'])
 		return str(entity['id'])
 
 	def is_vds(self, entity):

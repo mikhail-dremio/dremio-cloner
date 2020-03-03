@@ -240,7 +240,7 @@ class DremioReader:
 		self._logger.debug("_read_tags: for entity " + self._utils.get_entity_desc(entity))
 		tag = self._dremio_env.get_catalog_tags(entity['id'])
 		if tag is not None:
-			tag_json = [{"entity_id": entity['id']}, tag]
+			tag_json = [{"entity_id": entity['id'], }, tag]
 			if tag_json not in self._d.tags:
 				self._d.tags.append(tag_json)
 
@@ -276,6 +276,7 @@ class DremioReader:
 		for vds in self._d.vds_list:
 			self._populate_dependencies_graph(vds)
 
+	# Discovers dependencies for the passed dataset and adds them to the self._d.vds_list
 	def _discover_dependencies(self, dataset):
 		self._logger.debug("_discover_dependencies: processing dataset: " + self._utils.get_entity_desc(dataset))
 		if dataset is not None:
@@ -309,6 +310,7 @@ class DremioReader:
 
 	def _populate_dependencies_graph(self, vds):
 		self._logger.debug("_populate_dependencies_graph: processing vds: " + self._utils.get_entity_desc(vds))
+		# For some broken VDSs,
 		vds_parent_list = self._get_vds_dependency_paths(vds)
 		vds_parent_json = {'id':vds['id'], 'path':vds['path'], 'parents':vds_parent_list }
 		if not self._config.source_ce and self._config.source_graph_support:
@@ -321,7 +323,7 @@ class DremioReader:
 		else:
 			graph = self._dremio_env.get_catalog_entity_graph_by_id(vds['id'])
 			if graph is None:
-				self._logger.error("Could not receive Graph via API. Try to set 'graph_api_support' to False in the job configuration.")
+				self._logger.warn("Could not receive Graph via API. Try to set graph_api_support to False in the job configuration.")
 				return parse_sql.tables_in_query(vds['sql'])
 			vds_parent_list = []
 			for parent in graph['parents']:

@@ -69,10 +69,9 @@ class DremioFile():
 		json.dump({'wikis':dremio_data.wikis}, f)
 		f.write(',')
 		json.dump({'votes':dremio_data.votes}, f)
-		# TODO
-		#if dremio_data.vds_parents:
-		#	f.write(',')
-		#	json.dump({'vds_parents':str(dremio_data.vds_parents)}, f)
+		if dremio_data.vds_parents:
+			f.write(',')
+			json.dump({'vds_parents':dremio_data.vds_parents}, f)
 		f.write(' ] }')
 		f.close()
 

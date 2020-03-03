@@ -37,7 +37,7 @@ def tables_in_query(sql_str):
 	# scan the tokens. if we see a FROM or JOIN, we set the get_next
 	# flag, and grab the next one (unless it's SELECT).
 
-	result = set()
+	result = list()
 	get_next = False
 	for tok in tokens:
 		if get_next:
@@ -46,9 +46,9 @@ def tables_in_query(sql_str):
 				if tok[0:1] == '"' and tok[-1:] != '"':
 					quoted = sql_str[sql_str.find(tok) + 1:]
 					quoted = quoted[:quoted.find('"')]
-					result.add(normalize_path(quoted))
+					result.append(normalize_path(quoted))
 				else:
-					result.add(normalize_path(tok))
+					result.append(normalize_path(tok))
 			get_next = False
 		get_next = tok.lower() in ["from", "join"]
 

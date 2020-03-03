@@ -50,6 +50,10 @@ class DremioWriter:
 	_target_dremio_users = []
 	_target_dremio_groups = []
 
+	# Resolved Datasets for Reflections
+	_existing_reflections = list()
+	_resolved_reflected_datasets = list()
+
 	# Dry run collections
 	_dry_run_processed_vds_list = []
 	_dry_run_processed_pds_list = []
@@ -64,6 +68,9 @@ class DremioWriter:
 
 	def write_dremio_environment(self):
 		self._retrieve_users_groups()
+		if self._config.reflection_process_mode != 'skip':
+			self._existing_reflections = self._dremio_env.list_reflections()['data']
+			self._resolve_reflected_datasets()
 		if self._config.user_process_mode == 'skip':
 			self._logger.info("write_dremio_environment: Skipping user processing due to configuration user.process_mode=skip.")
 		else:
@@ -97,6 +104,11 @@ class DremioWriter:
 			self._order_vds(0)
 			self._write_vds_hierarchy()
 			self._write_remainder_vds()
+		if self._config.reflection_process_mode == 'skip':
+			self._logger.info("write_dremio_environment: Skipping reflection processing due to configuration reflection.process_mode=skip.")
+		else:
+			for reflection in self._d.reflections:
+				self._write_reflection(reflection, self._config.folder_process_mode)
 
 	def _write_space(self, entity, process_mode, ignore_missing_acl_user_flag, ignore_missing_acl_group_flag):
 		self._logger.debug("_write_space: processing entity: " + self._utils.get_entity_desc(entity))
@@ -166,7 +178,7 @@ class DremioWriter:
 				else:
 					self._unresolved_vds.remove(vds)
 		if self._d.vds_list != [] or self._unresolved_vds != []:
-			self._logger.error("_write_remainder_vds: Attempt processing VDSs that failed ordering. The following VDSs failed. See prior error messages for details.")
+			self._logger.error('_write_remainder_vds: Attempt processing VDSs that failed ordering. The following VDSs failed. Set log level to DEBUG and see prior error messages for more information.')
 			for vds in self._d.vds_list:
 				self._logger.error("Failed VDS: " + str(vds['path']))
 			for vds in self._unresolved_vds:
@@ -301,11 +313,111 @@ class DremioWriter:
 			return False
 		return True
 
-	# TODO Create/Update Reflections.
+
+	def _resolve_reflected_datasets(self):
+		for reflection in self._d.reflections:
+			dataset_id = reflection['datasetId']
+			dataset = None
+			for vds in self._d.vds_list:
+				if dataset_id == vds['id']:
+					dataset = vds
+					break
+			for pds in self._d.pds_list:
+				if dataset_id == pds['id']:
+					dataset = pds
+					break
+			if dataset is not None:
+				self._resolved_reflected_datasets.append({"datasetId": dataset_id, "path": dataset['path']})
+
+
 	def _write_reflection(self, reflection, process_mode):
+		self._logger.debug("_write_reflection: processing reflection: " + self._utils.get_entity_desc(reflection))
+		# Clean up the definition
+		if 'id' in reflection:
+			reflection.pop("id")
+		if 'tag' in reflection:
+			reflection.pop("tag")
+		if 'createdAt' in reflection:
+			reflection.pop("createdAt")
+		if 'updatedAt' in reflection:
+			reflection.pop("updatedAt")
+		if 'currentSizeBytes' in reflection:
+			reflection.pop("currentSizeBytes")
+		if 'totalSizeBytes' in reflection:
+			reflection.pop("totalSizeBytes")
+#		if 'enabled' in reflection:
+#			reflection.pop("enabled")
+		if 'status' in reflection:
+			reflection.pop("status")
+		reflected_dataset = self._find_reflection_dataset(reflection)
+		if reflected_dataset is None:
+			self._logger.error("_write_reflection: Could not resolve dataset for " + self._utils.get_entity_desc(reflection))
+			return None
+		# Check if the reflection already exists
+		existing_reflection = self._find_existing_reflection(reflection, reflected_dataset)
+		if existing_reflection is None:  # Need to create new entity
+			if process_mode == 'update_only':
+				self._logger.info("_write_reflection: Skipping reflection creation due to configuration reflection_process_mode. " + self._utils.get_entity_desc(reflection))
+				return None
+			if self._config.dry_run:
+				self._logger.warn("_write_reflection: Dry Run, NOT Creating reflection: " + self._utils.get_entity_desc(reflection))
+				return None
+			new_reflection = self._dremio_env.create_reflection(reflection, self._config.dry_run)
+			if new_reflection is None:
+				self._logger.error("_write_reflection: could not create " + self._utils.get_entity_desc(reflection))
+				return None
+		else:  # Reflection already exists in the target environment
+			if process_mode == 'create_only':
+				self._logger.info("_write_reflection: Found existing refleciton and reflection_process_mode is set to create_only. Skipping " + self._utils.get_entity_desc(reflection))
+				return None
+			# make sure there are changes to update as it will invalidate existing reflection data
+			if reflection['type'] == existing_reflection['type'] and \
+				reflection['name'] == existing_reflection['name'] and \
+				('partitionDistributionStrategy' in reflection and reflection['partitionDistributionStrategy'] == existing_reflection['partitionDistributionStrategy']) and \
+			    ('measureFields' in reflection and reflection['measureFields'] == existing_reflection['measureFields']) and \
+				('dimensionFields' in reflection and reflection['dimensionFields'] == existing_reflection['dimensionFields']) and \
+				('displayFields' in reflection and reflection['displayFields'] == existing_reflection['displayFields']) and \
+				('sortFields' in reflection and reflection['sortFields'] == existing_reflection['sortFields']) and \
+				('partitionFields' in reflection and reflection['partitionFields'] == existing_reflection['partitionFields']) and \
+				('distributionFields' in reflection and reflection['distributionFields'] == existing_reflection['distributionFields']):
+				# Nothing to do
+				self._logger.debug("_write_reflection: No pending changes. Skipping " + self._utils.get_entity_desc(reflection))
+				return None
+			if self._config.dry_run:
+				self._logger.warn("_write_entity: Dry Run, NOT Updating " + self._utils.get_entity_desc(reflection))
+				return False
+			self._logger.debug("_write_reflection: Overwriting " + self._utils.get_entity_desc(reflection))
+			reflection['tag'] = existing_reflection['tag']
+			updated_reflection = self._dremio_env.update_reflection(existing_reflection['id'], reflection, self._config.dry_run)
+			if updated_reflection is None:
+				self._logger.error("_write_reflection: Error updating " + self._utils.get_entity_desc(reflection))
+				return False
 		return True
 
-	# Searches for Users from entity's ACL in the target environment and either:
+
+	# Finds a dataset in the target environment that matches reflection's dataset by path
+	def _find_reflection_dataset(self, reflection):
+		dataset_id = reflection['datasetId']
+		for dataset in self._resolved_reflected_datasets:
+			if dataset_id == dataset['datasetId']:
+				# Try to find this dataset in the target environment
+				dataset_entity = self._dremio_env.get_catalog_entity_by_path(self._utils.normalize_path(dataset['path']))
+				return dataset_entity
+		return None
+
+
+	def _find_existing_reflection(self, reflection, dataset):
+		for existing_reflection in self._existing_reflections:
+			# Match reflections by name
+			if reflection['name'] == existing_reflection['name']:
+				existing_dataset = self._dremio_env.get_catalog_entity_by_id(existing_reflection['datasetId'])
+				# Match reflections by respective dataset's path
+				if existing_dataset['path'] == dataset['path']:
+					return existing_reflection
+		return None
+
+
+# Searches for Users from entity's ACL in the target environment and either:
 	# - removes the user from ACL if not found and ignore_missing_acl_user_flag is set 
 	# - returns False if if not found and ignore_missing_acl_user_flag is not set
 	# - updates the ACL with userid from the new environment if User found there 
@@ -466,7 +578,6 @@ class DremioWriter:
 					if 'is_community_edition' in param:
 						return eval(param['is_community_edition'])
 		return False
-			#and not self._d.get_config.source.is_community_edition:
 
 	def _find_vds_by_path(self, path):
 		# First, try finding in the VDS list from the source file
