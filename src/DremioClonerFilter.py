@@ -96,11 +96,11 @@ class DremioClonerFilter():
 			pass
 		elif ('entityType' in entity and entity['entityType'] == 'folder') or \
 				('containerType' in entity and entity['containerType'] == 'FOLDER'):
-			if root_re is None or folder_re is None:
+			if root_re is None: # Not validating folder_re as the call might be to validate if the folder is from the unfiltered space
 				return False
 		elif ('entityType' in entity and entity['entityType'] == 'dataset') or \
 				('type' in entity and entity['type'] == 'DATASET'):
-			if root_re is None or folder_re is None or object_re is None:
+			if root_re is None: # Not validating folder_re, object_re as the call might be to validate if the folder is from the unfiltered space
 				return False
 		else:
 			self._logger.fatal("_match_path: Unexpected Entity Type " + str(entity))
