@@ -30,7 +30,6 @@ class DremioClonerConfig():
 	CMD_PUT = 'put'
 	CMD_CASCADE_ACL = 'cascade-acl'
 	CMD_DESCRIBE_JOB = 'describe-job'
-	CMD_VDS_FILES = 'save-vds-files'
 	CMD_REPORT_ACL = 'report-acl'
 	CMD_REPORT_REFLECTIONS = 'report-reflections'
 
@@ -45,6 +44,7 @@ class DremioClonerConfig():
 	source_username = None
 	source_password = None
 	source_filename = None
+	source_directory = None
 	source_ce = False
 	source_graph_support = False
 	target_ce = False
@@ -56,8 +56,10 @@ class DremioClonerConfig():
 	target_password = None
 	target_filename = None
 	target_directory = None
-	target_directory_overwrite = False
+	target_file_or_dir_overwrite = False
 	target_type = None
+	container_filename = "___container.json"
+	dremio_conf_filename = "___dremio_cloner_conf.json"
 	# Options
 	max_errors = 9999
 	http_timeout = 10 # seconds
@@ -156,7 +158,7 @@ class DremioClonerConfig():
 			elif 'directory' in item:
 				self.target_directory = item['directory']
 			elif 'overwrite' in item:
-				self.target_directory_overwrite = item['overwrite']
+				self.target_file_or_dir_overwrite = item['overwrite']
 			elif 'verify_ssl' in item:
 				self.target_verify_ssl = self._bool(item, 'verify_ssl')
 			elif 'is_community_edition' in item:
@@ -174,6 +176,8 @@ class DremioClonerConfig():
 				self.source_password = item['password']
 			elif 'filename' in item:
 				self.source_filename = item['filename']
+			elif 'directory' in item:
+				self.source_directory = item['directory']
 			elif 'verify_ssl' in item:
 				self.source_verify_ssl = self._bool(item, 'verify_ssl')
 			elif 'is_community_edition' in item:
@@ -295,14 +299,12 @@ class DremioClonerConfig():
 	def _validate_configuration(self):
 		if (self.command is None):
 			self._logger.fatal("missing 'command' entry.")
-		elif self.command == self.CMD_GET and (self.source_endpoint is None or self.source_username is None or self.source_password is None or self.target_filename is None):
+		elif self.command == self.CMD_GET and (self.source_endpoint is None or self.source_username is None or self.source_password is None or (self.target_filename is None and self.target_directory is None)):
 			self._logger.fatal("Invalid configuration for command 'get'.")
-		elif self.command == self.CMD_PUT and (self.source_filename is None or self.target_endpoint is None or self.target_username is None or self.target_password is None):
+		elif self.command == self.CMD_PUT and ((self.source_filename is None and self.source_directory is None) or self.target_endpoint is None or self.target_username is None or self.target_password is None):
 			self._logger.fatal("Invalid configuration for command 'get'.")
 		elif self.command == self.CMD_REPORT_ACL and (self.source_endpoint is None or self.source_username is None or self.source_password is None or self.target_filename is None):
 			self._logger.fatal("Invalid configuration for command 'report-acl'.")
-		elif self.command == self.CMD_VDS_FILES and (self.source_endpoint is None or self.source_username is None or self.source_password is None or self.target_directory is None):
-			self._logger.fatal("Invalid configuration for command 'save-vds-files'.")
 
 		if (self.command == self.CMD_PUT and (self.space_process_mode is None or
 			     (self.space_process_mode != 'skip' and self.space_process_mode != 'update_only' and 
@@ -320,12 +322,12 @@ class DremioClonerConfig():
 			     	self.vds_process_mode != 'create_only' and self.vds_process_mode != 'create_overwrite'))):
 			self._logger.fatal("Invalid configuration for vds.process_mode.")
 		# Make sure we do not overwrite JSON environment file
-		if (self.command == self.CMD_GET and os.path.isfile(self.target_filename)):
+		if (self.command == self.CMD_GET and self.target_filename is not None and not self.target_file_or_dir_overwrite and os.path.isfile(self.target_filename)):
 			self._logger.fatal("File " + str(self.target_filename) + " already exists. Cannot overwrite.")
+		if (self.command == self.CMD_GET and self.target_directory is not None and not self.target_file_or_dir_overwrite and os.path.isdir(self.target_directory)):
+			self._logger.fatal("File " + str(self.target_directory) + " Directory exists. Cannot overwrite.")
 		if (self.command == self.CMD_REPORT_ACL and os.path.isfile(self.target_filename)):
 			self._logger.fatal("File " + str(self.target_filename) + " already exists. Cannot overwrite.")
-		if (self.command == self.CMD_VDS_FILES and not self.target_directory_overwrite and os.path.isdir(self.target_directory)):
-			self._logger.fatal("File " + str(self.target_directory) + " Directory exists. Cannot overwrite.")
 
 	def _bool(self, conf, param_name):
 		if (param_name in conf):

@@ -51,7 +51,7 @@ class DremioReader:
 	# Read all data from the source Dremio environemnt
 	# Return DremioData
 	def read_dremio_environment(self):
-		if not self._config.pds_list_useapi:
+		if not self._config.pds_list_useapi and self._filter.is_pds_in_scope():
 			self._read_all_pds()
 		self._read_catalog()
 		if not self._config.source_ce:

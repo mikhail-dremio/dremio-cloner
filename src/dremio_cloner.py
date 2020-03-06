@@ -49,8 +49,6 @@ def main():
 			cascade_acl(config)
 		elif config.command == DremioClonerConfig.CMD_DESCRIBE_JOB:
 			describe_job(config)
-		elif config.command == DremioClonerConfig.CMD_VDS_FILES:
-			vds_files(config)
 		elif config.command == DremioClonerConfig.CMD_REPORT_REFLECTIONS:
 			report_reflections(config)
 		else:
@@ -69,14 +67,16 @@ def get_dremio_environment(config):
 	dremio = Dremio(config.source_endpoint, config.source_username, config.source_password, config.http_timeout, config.source_retry_timedout, config.source_verify_ssl)
 	reader = DremioReader(dremio, config)
 	dremio_data = reader.read_dremio_environment()
-	DremioFile.save_dremio_environment(config, dremio_data, config.target_filename)
+	file = DremioFile(config)
+	file.save_dremio_environment(dremio_data)
 	logging.info("Command 'get' finished with " + str(reader.get_errors_count()) + " error(s).")
 	print("Done with " + str(reader.get_errors_count()) + " error(s). Please review log file for details.")
 
 
 def put_dremio_environment(config):
 	logging.info("Executing command 'put'.")
-	dremio_data = DremioFile.read_dremio_environment(config.source_filename)
+	file = DremioFile(config)
+	dremio_data = file.read_dremio_environment()
 	if config.target_password is None or config.target_password == "":
 		config.target_password = getpass.getpass("Enter password:")
 	dremio = Dremio(config.target_endpoint, config.target_username, config.target_password, config.http_timeout, verify_ssl=config.target_verify_ssl)
@@ -84,18 +84,6 @@ def put_dremio_environment(config):
 	writer.write_dremio_environment()
 	logging.info("Command 'put' finished with " + str(writer.get_errors_count()) + " error(s).")
 	print("Done with " + str(writer.get_errors_count()) + " error(s). Please review log file for details.")
-
-
-def vds_files(config):
-	logging.info("Executing command 'vds-files'.")
-	if config.source_password is None or config.source_password == "":
-		config.source_password = getpass.getpass("Enter password:")
-	dremio = Dremio(config.source_endpoint, config.source_username, config.source_password, config.http_timeout, config.source_retry_timedout, config.source_verify_ssl)
-	reader = DremioReader(dremio, config)
-	dremio_data = reader.read_dremio_environment()
-	DremioFile.save_vds_files(config, dremio_data, config.target_directory)
-	logging.info("Command 'vds-files' finished with " + str(reader.get_errors_count()) + " error(s).")
-	print("Done with " + str(reader.get_errors_count()) + " error(s). Please review log file for details.")
 
 
 def report_acl(config):

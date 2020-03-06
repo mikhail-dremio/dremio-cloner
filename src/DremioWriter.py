@@ -572,7 +572,7 @@ class DremioWriter:
 					return vds_entry['parents']
 
 	def _is_source_ce(self):
-		for item in self._d.get_config:
+		for item in self._d.dremio_get_config:
 			if 'source' in item:
 				for param in item['source']:
 					if 'is_community_edition' in param:

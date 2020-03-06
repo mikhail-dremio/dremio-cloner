@@ -9,7 +9,7 @@
 	{"graph_api_support": "True"}]
   },
   {"target": [
-	{"filename":"<TARGET_JSON_FILE_NAME>"},
+	{"directory":"<TARGET_DIRECTORY_PATH>"},
 	{"overwrite": "False"}]
   },
   {"options": [

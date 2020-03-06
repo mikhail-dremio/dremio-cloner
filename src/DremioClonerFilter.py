@@ -29,6 +29,12 @@ class DremioClonerFilter():
 		self._logger = DremioClonerLogger(self._config.max_errors, self._config.logging_verbose)
 		self._utils = DremioClonerUtils(config)
 
+	def is_pds_in_scope(self):
+		return self._config._source_filter_re is not None and \
+				self._config._pds_filter_re is not None and \
+			   	self._config.source_folder_exclude_filter != '*' and \
+				self._config.pds_exclude_filter != '*'
+
 	def match_space_filter(self, container, loginfo = False):
 		if self._match_path(self._config._space_filter_re, self._config._space_exclude_filter_re, None, None, None, None, container):
 			return True
