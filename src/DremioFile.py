@@ -187,16 +187,16 @@ class DremioFile():
 			f.close()
 			# Process all entities
 			for home in dremio_data.homes:
-				os.makedirs(os.path.join(target_directory, "homes", home['name']))
+				os.makedirs(os.path.join(target_directory, "homes", self._replace_special_characters(home['name'])))
 				self._write_container_json_file(os.path.join(target_directory, "homes"), home)
 			for space in dremio_data.spaces:
-				os.makedirs(os.path.join(target_directory, "spaces", space['name']))
+				os.makedirs(os.path.join(target_directory, "spaces", self._replace_special_characters(space['name'])))
 				self._write_container_json_file(os.path.join(target_directory, "spaces"), space)
 			for source in dremio_data.sources:
-				os.makedirs(os.path.join(target_directory, "sources", source['name']))
+				os.makedirs(os.path.join(target_directory, "sources", self._replace_special_characters(source['name'])))
 				self._write_container_json_file(os.path.join(target_directory, "sources"), source)
 			for folder in dremio_data.folders:
-				os.makedirs(os.path.join(target_directory, "spaces", self._utils.normalize_path(folder['path'])))
+				os.makedirs(os.path.join(target_directory, "spaces", self._get_fs_path(folder['path'])))
 				self._write_folder_json_file(os.path.join(target_directory, "spaces"), folder)
 			for vds in dremio_data.vds_list:
 				self._write_entity_json_file(os.path.join(target_directory, "spaces"), vds)
@@ -263,21 +263,21 @@ class DremioFile():
 					object_list.append(data)
 
 	def _write_container_json_file(self, root_dir, container):
-		filepath = root_dir + "/" + container['name'] + "/" + self._config.container_filename
+		filepath = os.path.join(root_dir, container['name'], self._config.container_filename)
 		f = open(filepath, "w")
 		json.dump(container, f)
 		f.close()
 
 
 	def _write_object_json_file(self, root_dir, object):
-		filepath = root_dir + "/" + object['id'] + ".json"
+		filepath = os.path.join(root_dir, object['id'] + ".json")
 		f = open(filepath, "w")
 		json.dump(object, f)
 		f.close()
 
 
 	def _write_folder_json_file(self, root_dir, folder):
-		filepath = root_dir + "/" + self._utils.normalize_path(folder['path']) + "/" + self._config.container_filename
+		filepath = os.path.join(root_dir, self._get_fs_path(folder['path']), self._config.container_filename)
 		f = open(filepath, "w")
 		json.dump(folder, f)
 		f.close()
@@ -294,9 +294,20 @@ class DremioFile():
 				except OSError as e:
 					if e.errno != errno.EEXIST:
 						raise "Cannot create directory: " + filepath
-			filepath = filepath + "/" + item
+			# Replace special characters with underscore
+			filepath = os.path.join(filepath, self._replace_special_characters(item))
 		# write entity into json file
 		f = open(filepath + ".json", "w")
 		json.dump(entity, f)
 		f.close()
 
+
+	def _replace_special_characters(self, fs_item):
+		return fs_item.replace("\\", "_")
+
+
+	def _get_fs_path(self, path):
+		fs_path = ""
+		for item in path:
+			fs_path = os.path.join(fs_path, self._replace_special_characters(item))
+		return fs_path
