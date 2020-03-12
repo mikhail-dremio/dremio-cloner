@@ -213,9 +213,9 @@ class DremioFile():
 			for rule in dremio_data.rules:
 				self._write_object_json_file(os.path.join(target_directory, "rules"), rule)
 			for tag in dremio_data.tags:
-				self._write_object_json_file(os.path.join(target_directory, "tags"), tag)
+				self._write_wiki_tag_json_file(os.path.join(target_directory, "tags"), tag)
 			for wiki in dremio_data.wikis:
-				self._write_object_json_file(os.path.join(target_directory, "wikis"), wiki)
+				self._write_wiki_tag_json_file(os.path.join(target_directory, "wikis"), wiki)
 			for vote in dremio_data.votes:
 				self._write_object_json_file(os.path.join(target_directory, "votes"), vote)
 			for vds_parent in dremio_data.vds_parents:
@@ -269,6 +269,13 @@ class DremioFile():
 		f.close()
 
 
+	def _write_wiki_tag_json_file(self, root_dir, wiki):
+		filepath = os.path.join(root_dir, wiki[0]['entity_id'] + ".json")
+		f = open(filepath, "w")
+		json.dump(wiki, f)
+		f.close()
+
+
 	def _write_object_json_file(self, root_dir, object):
 		filepath = os.path.join(root_dir, object['id'] + ".json")
 		f = open(filepath, "w")
@@ -303,7 +310,7 @@ class DremioFile():
 
 
 	def _replace_special_characters(self, fs_item):
-		return fs_item.replace("\\", "_")
+		return fs_item.replace("\\", "_").replace("/", "_")
 
 
 	def _get_fs_path(self, path):
