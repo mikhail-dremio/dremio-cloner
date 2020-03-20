@@ -412,7 +412,7 @@ class DremioWriter:
 			if reflection['name'] == existing_reflection['name']:
 				existing_dataset = self._dremio_env.get_catalog_entity_by_id(existing_reflection['datasetId'])
 				# Match reflections by respective dataset's path
-				if existing_dataset['path'] == dataset['path']:
+				if existing_dataset is not None and existing_dataset['path'] == dataset['path']:
 					return existing_reflection
 		return None
 
