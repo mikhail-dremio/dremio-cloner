@@ -196,10 +196,10 @@ class DremioFile():
 				os.makedirs(os.path.join(target_directory, "sources", self._replace_special_characters(source['name'])))
 				self._write_container_json_file(os.path.join(target_directory, "sources"), source)
 			for folder in dremio_data.folders:
-				try: # ignore directory exists error, we might have created it prior
-					os.makedirs(os.path.join(target_directory, "spaces", self._get_fs_path(folder['path'])))
-				except FileExistsError:
-					pass
+				# ignore directory exists error, we might have created it prior
+				dirpath = os.path.join(target_directory, "spaces", self._get_fs_path(folder['path']))
+				if not os.path.isdir(dirpath):
+					os.makedirs(dirpath)
 				self._write_folder_json_file(os.path.join(target_directory, "spaces"), folder)
 			for vds in dremio_data.vds_list:
 				self._write_entity_json_file(os.path.join(target_directory, "spaces"), vds)
