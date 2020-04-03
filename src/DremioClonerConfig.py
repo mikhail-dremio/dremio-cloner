@@ -69,14 +69,14 @@ class DremioClonerConfig():
 	logging_filename = None
 	logging_verbose = False
 	# Processing 
-	user_process_mode = None				# Flag to process User: skip, create_only, update_only, create_overwrite
+	user_process_mode = None				# Flag to process User: process, skip, create_only, update_only, create_overwrite
 	space_filter = None						# Filter for Space entity type
 	space_exclude_filter = None				# Exclusion Filter for Space entity type
 	space_cascade_acl_origin_override_object = None	# An ACL from this object will be utilized instead of the Space ACL as an ACL to set inside all Folders and VDSs in the Space
 	space_folder_filter = None				# Filter for Space Folder entity type
 	space_folder_exclude_filter = None		# Exclusion Filter for Space Folder entity type
 	space_folder_cascade_acl_origin_filter = None	# Filter for folders that will be used as ACL origins if specified
-	space_process_mode = None				# Flag to process Space: skip, create_only, update_only, create_overwrite
+	space_process_mode = None				# Flag to process Space: process, skip, create_only, update_only, create_overwrite
 	space_ignore_missing_acl_user = False	# Flag to write a Space if an ACL user is missing in the target Dremio environment
 	space_ignore_missing_acl_group = False	# Flag to write a Space if an ACL group is missing in the target Dremio environment
 	source_filter = None					# Filter for Source entity type
@@ -84,27 +84,35 @@ class DremioClonerConfig():
 	source_cascade_acl_origin_override_object = None	# An ACL from this object will be utilized instead of the Source ACL as an ACL to set inside all PDS in the Source
 	source_folder_filter = None				# Filter for Source Folder entity type
 	source_folder_exclude_filter = None		# Exclusion Filter for Source Folder entity type
-	source_process_mode = None				# Flag to process Sources: skip, create_only, update_only, create_overwrite
+	source_process_mode = None				# Flag to process Sources: process, skip, create_only, update_only, create_overwrite
 	source_ignore_missing_acl_user = False	# Flag to write a Source if an ACL user is missing in the target Dremio environment
 	source_ignore_missing_acl_group = False	# Flag to write a Source if an ACL group is missing in the target Dremio environment
 	source_retry_timedout = False			# Flag to retry Sources that timed out
-	folder_process_mode = None				# Flag to process Folder: skip, create_only, update_only, create_overwrite
+	folder_process_mode = None				# Flag to process Folder: process, skip, create_only, update_only, create_overwrite
 	folder_ignore_missing_acl_user = False	# Flag to write a Folder if an ACL user is missing in the target Dremio environment
 	folder_ignore_missing_acl_group = False	# Flag to write a Folder if an ACL group is missing in the target Dremio environment
 	pds_list_useapi = False					# Using API for listing PDS may cause issues when the source is not available at the runtime
 	pds_filter = None						# Filter for PDS
 	pds_exclude_filter = None				# Exclusion Filter for PDS
-	pds_process_mode = None					# Flag to process Source PDS: skip, promote
+	pds_process_mode = None					# Flag to process Source PDS: process, skip, promote
 	pds_ignore_missing_acl_user = False		# Flag to write a Source PDS if an ACL user is missing in the target Dremio environment
 	pds_ignore_missing_acl_group = False	# Flag to write a Source PDS if an ACL group is missing in the target Dremio environment
 	vds_filter = None						# Filter for VDS
 	vds_exclude_filter = None				# Exclusion Filter for VDS
-	vds_process_mode = None					# Flag to process VDS: skip, create_only, update_only, create_overwrite
+	vds_process_mode = None					# Flag to process VDS: process, skip, create_only, update_only, create_overwrite
 	vds_dependencies_process_mode = 'ignore' # Flag to process VDS dependencies (VDS and PDS): ignore, get
 	vds_ignore_missing_acl_user = False		# Flag to write a VDS if an ACL user is missing in the target Dremio environment
 	vds_ignore_missing_acl_group = False	# Flag to write a VDS if an ACL group is missing in the target Dremio environment
 	vds_max_hierarchy_depth = 100			# The max hierarchy depth to process
-	reflection_process_mode = None					# Flag to process VDS: skip, create_only, update_only, create_overwrite
+	reflection_process_mode = None			# Flag to process VDS: process, skip, create_only, update_only, create_overwrite
+	wlm_queue_process_mode = 'process'		# Flag to process WLM Queues: process, skip
+	wlm_rule_process_mode = 'process'		# Flag to process WLM Rules: process, skip
+	wiki_process_mode = 'process'			# Flag to process Wikis: process, skip
+	tag_process_mode ='process'				# Flag to process Tags: process, skip
+	home_process_mode = 'process'			# Flag to process Homes: process, skip
+	vote_process_mode = 'process'			# Flag to process Votes: process, skip
+
+
 	# Report options
 	report_csv_delimiter = "\t"
 	report_csv_newline = "\n"
@@ -295,6 +303,18 @@ class DremioClonerConfig():
 			elif 'report.csv.newline' in item:
 				self.report_csv_newline = self._str(item, 'report.csv.newline')
 			# Misc options
+			elif 'wlm.queue.process_mode' in item:
+				self.wlm_queue_process_mode = self._str(item, 'wlm.queue.process_mode')
+			elif 'wlm.rule.process_mode' in item:
+				self.wlm_rule_process_mode = self._str(item, 'wlm.rule.process_mode')
+			elif 'wiki.process_mode' in item:
+				self.wiki_process_mode = self._str(item, 'wiki.process_mode')
+			elif 'tag.process_mode' in item:
+				self.tag_process_mode = self._str(item, 'tag.process_mode')
+			elif 'home.process_mode' in item:
+				self.home_process_mode = self._str(item, 'home.process_mode')
+			elif 'vote.process_mode' in item:
+				self.vote_process_mode = self._str(item, 'vote.process_mode')
 
 	def _validate_configuration(self):
 		if (self.command is None):

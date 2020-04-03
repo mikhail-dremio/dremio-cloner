@@ -54,19 +54,16 @@ class DremioReader:
 		if not self._config.pds_list_useapi and self._filter.is_pds_in_scope():
 			self._read_all_pds()
 		self._read_catalog()
-		if not self._config.source_ce:
-			self._read_reflections()
-		if not self._config.source_ce:
-			self._read_rules()
-			self._read_queues()
-			self._read_votes()
+		self._read_reflections()
+		self._read_rules()
+		self._read_queues()
+		self._read_votes()
 		# Make sure that all VDS dependencies included as per configuration
 		self._process_vds_dependencies()
 		return self._d
 
-	# This method should go away when DX-16597 is resolved
 	def _read_all_pds(self):
-		if self._config.pds_filter is None or self._config.pds_exclude_filter == "*":
+		if self._config.pds_list_useapi or not self._filter.is_pds_in_scope():
 			self._logger.info("_read_all_pds: skipping PDS reading as per pds.filter configuration.")
 		else:
 			pds_list = self._dremio_env.list_pds(self._config.source_filter,
@@ -98,17 +95,20 @@ class DremioReader:
 
 	def _read_home(self, container):
 		self._logger.debug("_read_home: processing container: " + self._utils.get_entity_desc(container))
-		self._top_level_hierarchy_context = "HOME"
-		self._d.containers.append(container)
-		entity = self._get_entity_definition_by_id(container)
-		if entity is not None:
-			self._logger.info("_read_home: " + self._utils.get_entity_desc(entity))
-			self._d.homes.append(entity)
-			self._read_acl(entity)
-			self._read_wiki(entity)
-			self._read_space_children(entity)
+		if self._config.home_process_mode == 'process':
+			self._top_level_hierarchy_context = "HOME"
+			self._d.containers.append(container)
+			entity = self._get_entity_definition_by_id(container)
+			if entity is not None:
+				self._logger.info("_read_home: " + self._utils.get_entity_desc(entity))
+				self._d.homes.append(entity)
+				self._read_acl(entity)
+				self._read_wiki(entity)
+				self._read_space_children(entity)
+			else:
+				self._logger.error("_read_home: error reading entity for container: " + self._utils.get_entity_desc(container))
 		else:
-			self._logger.error("_read_home: error reading entity for container: " + self._utils.get_entity_desc(container))
+			self._logger.debug("_read_home: skipping due to job configuration")
 
 	def _read_space(self, container):
 		self._logger.debug("_read_space: processing container: " + self._utils.get_entity_desc(container))
@@ -125,22 +125,26 @@ class DremioReader:
 			else:
 				self._logger.error("_read_space: error reading entity for container: " + self._utils.get_entity_desc(container))
 
+
 	def _read_source(self, container):
 		self._logger.debug("_read_source: processing container: " + self._utils.get_entity_desc(container))
-		self._top_level_hierarchy_context = "SOURCE"
-		if self._filter.match_source_filter(container):
-			self._d.containers.append(container)
-			entity = self._get_entity_definition_by_id(container)
-			if entity is not None:
-				self._logger.debug("_read_source: " + self._utils.get_entity_desc(entity))
-				self._d.sources.append(entity)
-				self._read_acl(entity)
-				self._read_wiki(entity)
-				# Depending on the useapi flag, PDSs can be collected via INFORMATION_SCHEMA. See also DX16597
-				if self._config.pds_list_useapi:
-					self._read_source_children(entity)
-			else:
-				self._logger.error("_read_source: error reading entity for container: " + self._utils.get_entity_desc(container))
+		if self._config.source_process_mode == 'process' or (self._config.pds_process_mode == 'process' and self._config.pds_list_useapi):
+			self._top_level_hierarchy_context = "SOURCE"
+			if self._filter.match_source_filter(container):
+				self._d.containers.append(container)
+				entity = self._get_entity_definition_by_id(container)
+				if entity is not None:
+					self._logger.debug("_read_source: " + self._utils.get_entity_desc(entity))
+					self._d.sources.append(entity)
+					self._read_acl(entity)
+					self._read_wiki(entity)
+					# Depending on the useapi flag, PDSs can be collected via INFORMATION_SCHEMA. See also DX16597
+					if self._config.pds_list_useapi:
+						self._read_source_children(entity)
+				else:
+					self._logger.error("_read_source: error reading entity for container: " + self._utils.get_entity_desc(container))
+		else:
+			self._logger.debug("_read_source: skipping due to job configuration" )
 
 	def _read_space_folder(self, folder):
 		self._logger.debug("_read_space_folder: processing folder: " + self._utils.get_entity_desc(folder))
@@ -228,29 +232,39 @@ class DremioReader:
 		return
 
 	def _read_reflections(self):
-		reflections = self._dremio_env.list_reflections()['data']
-		for reflection in reflections:
-			self._logger.debug("_read_reflections: processing reflection " + reflection['datasetId'])
-			self._d.reflections.append(reflection)
-			self._read_acl(reflection)
-			self._read_wiki(reflection)
+		self._logger.debug("_read_reflections: starting")
+		if self._config.reflection_process_mode == 'process' and not self._config.source_ce:
+			reflections = self._dremio_env.list_reflections()['data']
+			for reflection in reflections:
+				self._logger.debug("_read_reflections: processing reflection " + reflection['datasetId'])
+				self._d.reflections.append(reflection)
+				self._read_acl(reflection)
+				self._read_wiki(reflection)
+		else:
+			self._logger.debug("_read_reflections: skipping reflections processing as per job configuration")
 
 	# Note, tags are only available for datasets
 	def _read_tags(self, entity):
 		self._logger.debug("_read_tags: for entity " + self._utils.get_entity_desc(entity))
-		tag = self._dremio_env.get_catalog_tags(entity['id'])
-		if tag is not None:
-			tag_json = [{"entity_id": entity['id'], }, tag]
-			if tag_json not in self._d.tags:
-				self._d.tags.append(tag_json)
+		if self._config.tag_process_mode == 'process':
+			tag = self._dremio_env.get_catalog_tags(entity['id'])
+			if tag is not None:
+				tag_json = [{"entity_id": entity['id'], }, tag]
+				if tag_json not in self._d.tags:
+					self._d.tags.append(tag_json)
+		else:
+			self._logger.debug("_read_tags: skipping tags processing as per job configuration")
 
 	def _read_wiki(self, entity):
 		self._logger.debug("_read_wiki: for entity " + self._utils.get_entity_desc(entity))
-		wiki = self._dremio_env.get_catalog_wiki(entity['id'])
-		if wiki is not None:
-			wiki_json = [{"entity_id": entity['id']}, wiki]
-			if wiki_json not in self._d.wikis:
-				self._d.wikis.append(wiki_json)
+		if self._config.wiki_process_mode == 'process':
+			wiki = self._dremio_env.get_catalog_wiki(entity['id'])
+			if wiki is not None:
+				wiki_json = [{"entity_id": entity['id']}, wiki]
+				if wiki_json not in self._d.wikis:
+					self._d.wikis.append(wiki_json)
+		else:
+			self._logger.debug("_read_wiki: skipping wiki processing as per job configuration")
 
 	def _read_acl(self, entity):
 		self._logger.debug("_read_acl: for entity " + self._utils.get_entity_desc(entity))
@@ -273,8 +287,8 @@ class DremioReader:
 		if self._config.vds_dependencies_process_mode == 'get':
 			for vds in self._d.vds_list:
 				self._discover_dependencies(vds)
-		for vds in self._d.vds_list:
-			self._populate_dependencies_graph(vds)
+			for vds in self._d.vds_list:
+				self._populate_dependencies_graph(vds)
 
 	# Discovers dependencies for the passed dataset and adds them to the self._d.vds_list
 	def _discover_dependencies(self, dataset):
@@ -361,15 +375,24 @@ class DremioReader:
 
 	def _read_queues(self):
 		self._logger.debug("read_queues: started")
-		self._d.queues = self._dremio_env.list_queues()['data']
+		if self._config.wlm_queue_process_mode == 'process' and not self._config.source_ce:
+			self._d.queues = self._dremio_env.list_queues()['data']
+		else:
+			self._logger.debug("_read_queues: skipping as per job configuration")
 
 	def _read_rules(self):
 		self._logger.debug("read_rules: started")
-		self._d.rules = self._dremio_env.list_rules()['rules']
+		if self._config.wlm_rule_process_mode == 'process' and not self._config.source_ce:
+			self._d.rules = self._dremio_env.list_rules()['rules']
+		else:
+			self._logger.debug("read_rules: skipping as per job configuration")
 
 	def _read_votes(self):
 		self._logger.debug("read_votes: started")
-		self._d.votes = self._dremio_env.list_votes()['data']
+		if self._config.vote_process_mode == 'process' and not self._config.source_ce:
+			self._d.votes = self._dremio_env.list_votes()['data']
+		else:
+			self._logger.debug("read_votes: skipping as per job configuration")
 
 	def get_errors_count(self):
 		return self._logger.errors_encountered

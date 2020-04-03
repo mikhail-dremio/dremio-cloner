@@ -56,7 +56,6 @@ class DremioFile():
 		f = open(filename, "w")
 		f.write('{ "data": [')
 		json.dump({'dremio_environment': [{'file_version':'0.3'},{'base_url':self._config.source_endpoint},{'timestamp_utc':str(datetime.utcnow())}]}, f)
-		f.write(',')
 		# Remove password if present
 		for config_item in self._config.cloner_conf_json:
 			if 'source' in config_item:
@@ -64,39 +63,53 @@ class DremioFile():
 					if 'password' in source_item:
 						source_item['password'] = ''
 						break
+		f.write(',')
 		json.dump({'dremio_get_config':self._config.cloner_conf_json}, f)
 		f.write(',')
 		json.dump({'containers':dremio_data.containers}, f)
-		f.write(',')
-		json.dump({'homes':dremio_data.homes}, f)
-		f.write(',')
-		json.dump({'sources':dremio_data.sources}, f)
-		f.write(',')
-		json.dump({'spaces':dremio_data.spaces}, f)
-		f.write(',')
-		json.dump({'folders':dremio_data.folders}, f)
-		f.write(',')
-		json.dump({'pds':dremio_data.pds_list}, f)
-		f.write(',')
-		json.dump({'vds':dremio_data.vds_list}, f)
+		if self._config.home_process_mode == 'process':
+			f.write(',')
+			json.dump({'homes':dremio_data.homes}, f)
+		if self._config.source_process_mode == 'process':
+			f.write(',')
+			json.dump({'sources':dremio_data.sources}, f)
+		if self._config.space_process_mode == 'process':
+			f.write(',')
+			json.dump({'spaces':dremio_data.spaces}, f)
+		if self._config.folder_process_mode == 'process':
+			f.write(',')
+			json.dump({'folders':dremio_data.folders}, f)
+		if self._config.pds_process_mode == 'process':
+			f.write(',')
+			json.dump({'pds':dremio_data.pds_list}, f)
+		if self._config.vds_process_mode == 'process':
+			f.write(',')
+			json.dump({'vds':dremio_data.vds_list}, f)
 		f.write(',')
 		json.dump({'files':dremio_data.files}, f)
-		f.write(',')
-		json.dump({'reflections':dremio_data.reflections}, f)
-		f.write(',')
-		json.dump({'referenced_users':dremio_data.referenced_users}, f)
+		if self._config.reflection_process_mode == 'process':
+			f.write(',')
+			json.dump({'reflections':dremio_data.reflections}, f)
+		if self._config.user_process_mode == 'process':
+			f.write(',')
+			json.dump({'referenced_users':dremio_data.referenced_users}, f)
 		f.write(',')
 		json.dump({'referenced_groups':dremio_data.referenced_groups}, f)
-		f.write(',')
-		json.dump({'queues':dremio_data.queues}, f)
-		f.write(',')
-		json.dump({'rules':dremio_data.rules}, f)
-		f.write(',')
-		json.dump({'tags':dremio_data.tags}, f)
-		f.write(',')
-		json.dump({'wikis':dremio_data.wikis}, f)
-		f.write(',')
-		json.dump({'votes':dremio_data.votes}, f)
+		if self._config.wlm_queue_process_mode == 'process':
+			f.write(',')
+			json.dump({'queues':dremio_data.queues}, f)
+		if self._config.wlm_rule_process_mode == 'process':
+			f.write(',')
+			json.dump({'rules':dremio_data.rules}, f)
+		if self._config.tag_process_mode == 'process':
+			f.write(',')
+			json.dump({'tags':dremio_data.tags}, f)
+		if self._config.wiki_process_mode == 'process':
+			f.write(',')
+			json.dump({'wikis':dremio_data.wikis}, f)
+		if self._config.vote_process_mode == 'process':
+			f.write(',')
+			json.dump({'votes':dremio_data.votes}, f)
 		if dremio_data.vds_parents:
 			f.write(',')
 			json.dump({'vds_parents':dremio_data.vds_parents}, f)
@@ -159,18 +172,29 @@ class DremioFile():
 			if os.path.isdir(target_directory):
 				rmtree(target_directory)
 			os.makedirs(target_directory)
-			os.makedirs(os.path.join(target_directory, 'homes'))
-			os.makedirs(os.path.join(target_directory, 'sources'))
-			os.makedirs(os.path.join(target_directory, 'spaces'))
-			os.makedirs(os.path.join(target_directory, 'reflections'))
-			os.makedirs(os.path.join(target_directory, 'referenced_users'))
+			if self._config.home_process_mode == 'process':
+				os.makedirs(os.path.join(target_directory, 'homes'))
+			if self._config.source_process_mode == 'process' or self._config.pds_process_mode == 'process':
+				os.makedirs(os.path.join(target_directory, 'sources'))
+			if self._config.space_process_mode == 'process' or self._config.vds_process_mode == 'process':
+				os.makedirs(os.path.join(target_directory, 'spaces'))
+			if self._config.reflection_process_mode == 'process':
+				os.makedirs(os.path.join(target_directory, 'reflections'))
+			if self._config.user_process_mode == 'process':
+				os.makedirs(os.path.join(target_directory, 'referenced_users'))
 			os.makedirs(os.path.join(target_directory, 'referenced_groups'))
-			os.makedirs(os.path.join(target_directory, 'queues'))
-			os.makedirs(os.path.join(target_directory, 'rules'))
-			os.makedirs(os.path.join(target_directory, 'tags'))
-			os.makedirs(os.path.join(target_directory, 'wikis'))
-			os.makedirs(os.path.join(target_directory, 'votes'))
-			os.makedirs(os.path.join(target_directory, 'vds_parents'))
+			if self._config.wlm_queue_process_mode == 'process':
+				os.makedirs(os.path.join(target_directory, 'queues'))
+			if self._config.wlm_rule_process_mode == 'process':
+				os.makedirs(os.path.join(target_directory, 'rules'))
+			if self._config.tag_process_mode == 'process':
+				os.makedirs(os.path.join(target_directory, 'tags'))
+			if self._config.wiki_process_mode == 'process':
+				os.makedirs(os.path.join(target_directory, 'wikis'))
+			if self._config.vote_process_mode == 'process':
+				os.makedirs(os.path.join(target_directory, 'votes'))
+			if self._config.source_graph_support and self._config.vds_dependencies_process_mode == 'get':
+				os.makedirs(os.path.join(target_directory, 'vds_parents'))
 		except OSError as e:
 			raise Exception("Error processing directory structure. OS Error: " + e.strerror)
 		try:
@@ -186,41 +210,55 @@ class DremioFile():
 			json.dump({'dremio_get_config':self._config.cloner_conf_json}, f)
 			f.close()
 			# Process all entities
-			for home in dremio_data.homes:
-				os.makedirs(os.path.join(target_directory, "homes", self._replace_special_characters(home['name'])))
-				self._write_container_json_file(os.path.join(target_directory, "homes"), home)
-			for space in dremio_data.spaces:
-				os.makedirs(os.path.join(target_directory, "spaces", self._replace_special_characters(space['name'])))
-				self._write_container_json_file(os.path.join(target_directory, "spaces"), space)
-			for source in dremio_data.sources:
-				os.makedirs(os.path.join(target_directory, "sources", self._replace_special_characters(source['name'])))
-				self._write_container_json_file(os.path.join(target_directory, "sources"), source)
-			for folder in dremio_data.folders:
-				# ignore directory exists error, we might have created it prior
-				dirpath = os.path.join(target_directory, "spaces", self._get_fs_path(folder['path']))
-				if not os.path.isdir(dirpath):
-					os.makedirs(dirpath)
-				self._write_folder_json_file(os.path.join(target_directory, "spaces"), folder)
-			for vds in dremio_data.vds_list:
-				self._write_entity_json_file(os.path.join(target_directory, "spaces"), vds)
-			for pds in dremio_data.pds_list:
-				self._write_entity_json_file(os.path.join(target_directory, "sources"), pds)
-			for reflection in dremio_data.reflections:
-				self._write_object_json_file(os.path.join(target_directory, "reflections"), reflection)
-			for user in dremio_data.referenced_users:
-				self._write_object_json_file(os.path.join(target_directory, "referenced_users"), user)
+			if self._config.home_process_mode == 'process':
+				for home in dremio_data.homes:
+					os.makedirs(os.path.join(target_directory, "homes", self._replace_special_characters(home['name'])))
+					self._write_container_json_file(os.path.join(target_directory, "homes"), home)
+			if self._config.space_process_mode == 'process':
+				for space in dremio_data.spaces:
+					os.makedirs(os.path.join(target_directory, "spaces", self._replace_special_characters(space['name'])))
+					self._write_container_json_file(os.path.join(target_directory, "spaces"), space)
+			if self._config.source_process_mode == 'process':
+				for source in dremio_data.sources:
+					os.makedirs(os.path.join(target_directory, "sources", self._replace_special_characters(source['name'])))
+					self._write_container_json_file(os.path.join(target_directory, "sources"), source)
+			if self._config.folder_process_mode == 'process' or self._config.vds_process_mode == 'process':
+				for folder in dremio_data.folders:
+					# ignore directory exists error, we might have created it prior
+					dirpath = os.path.join(target_directory, "spaces", self._get_fs_path(folder['path']))
+					if not os.path.isdir(dirpath):
+						os.makedirs(dirpath)
+					if self._config.folder_process_mode == 'process':
+						self._write_folder_json_file(os.path.join(target_directory, "spaces"), folder)
+			if self._config.vds_process_mode == 'process':
+				for vds in dremio_data.vds_list:
+					self._write_entity_json_file(os.path.join(target_directory, "spaces"), vds)
+			if self._config.pds_process_mode == 'process':
+				for pds in dremio_data.pds_list:
+					self._write_entity_json_file(os.path.join(target_directory, "sources"), pds)
+			if self._config.reflection_process_mode == 'process':
+				for reflection in dremio_data.reflections:
+					self._write_object_json_file(os.path.join(target_directory, "reflections"), reflection)
+			if self._config.user_process_mode == 'process':
+				for user in dremio_data.referenced_users:
+					self._write_object_json_file(os.path.join(target_directory, "referenced_users"), user)
 			for group in dremio_data.referenced_groups:
 				self._write_object_json_file(os.path.join(target_directory, "referenced_groups"), group)
-			for queue in dremio_data.queues:
-				self._write_object_json_file(os.path.join(target_directory, "queues"), queue)
-			for rule in dremio_data.rules:
-				self._write_object_json_file(os.path.join(target_directory, "rules"), rule)
-			for tag in dremio_data.tags:
-				self._write_wiki_tag_json_file(os.path.join(target_directory, "tags"), tag)
-			for wiki in dremio_data.wikis:
-				self._write_wiki_tag_json_file(os.path.join(target_directory, "wikis"), wiki)
-			for vote in dremio_data.votes:
-				self._write_object_json_file(os.path.join(target_directory, "votes"), vote)
+			if self._config.wlm_queue_process_mode == 'process':
+				for queue in dremio_data.queues:
+					self._write_object_json_file(os.path.join(target_directory, "queues"), queue)
+			if self._config.wlm_rule_process_mode == 'process':
+				for rule in dremio_data.rules:
+					self._write_object_json_file(os.path.join(target_directory, "rules"), rule)
+			if self._config.tag_process_mode == 'process':
+				for tag in dremio_data.tags:
+					self._write_wiki_tag_json_file(os.path.join(target_directory, "tags"), tag)
+			if self._config.wiki_process_mode == 'process':
+				for wiki in dremio_data.wikis:
+					self._write_wiki_tag_json_file(os.path.join(target_directory, "wikis"), wiki)
+			if self._config.vote_process_mode == 'process':
+				for vote in dremio_data.votes:
+					self._write_vote_json_file(os.path.join(target_directory, "votes"), vote)
 			for vds_parent in dremio_data.vds_parents:
 				self._write_object_json_file(os.path.join(target_directory, "vds_parents"), vds_parent)
 		except OSError as e:
@@ -281,6 +319,13 @@ class DremioFile():
 
 	def _write_object_json_file(self, root_dir, object):
 		filepath = os.path.join(root_dir, object['id'] + ".json")
+		f = open(filepath, "w")
+		json.dump(object, f)
+		f.close()
+
+
+	def _write_vote_json_file(self, root_dir, object):
+		filepath = os.path.join(root_dir, object['datasetId'] + ".json")
 		f = open(filepath, "w")
 		json.dump(object, f)
 		f.close()

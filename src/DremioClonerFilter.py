@@ -33,7 +33,8 @@ class DremioClonerFilter():
 		return self._config._source_filter_re is not None and \
 				self._config._pds_filter_re is not None and \
 			   	self._config.source_folder_exclude_filter != '*' and \
-				self._config.pds_exclude_filter != '*'
+				self._config.pds_exclude_filter != '*' and \
+				self._config.pds_process_mode == 'process'
 
 	def match_space_filter(self, container, loginfo = False):
 		if self._match_path(self._config._space_filter_re, self._config._space_exclude_filter_re, None, None, None, None, container):
