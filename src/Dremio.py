@@ -270,6 +270,18 @@ class Dremio:
 			return
 		return self._api_put_json(self._reflections_url + reflection_id, reflection, source="update_reflection")
 
+	def update_wiki(self, catalog_id, wiki, dry_run=True):
+		if dry_run:
+			logging.warn("update_wiki: Dry Run. Not submitting changes to API.")
+			return
+		return self._api_post_json(self._catalog_url + catalog_id + "/collaboration/wiki", wiki, source="update_wiki")
+
+	def update_tag(self, catalog_id, tag, dry_run=True):
+		if dry_run:
+			logging.warn("update_tag: Dry Run. Not submitting changes to API.")
+			return
+		return self._api_post_json(self._catalog_url + catalog_id + "/collaboration/tag", tag, source="update_tag")
+
 	def promote_pds(self, pds_entity, dry_run=True):
 		if dry_run:
 			logging.warn("promote_pds: Dry Run. Not submitting changes to API.")
@@ -280,6 +292,8 @@ class Dremio:
 	# Returns Job ID or None
 	def submit_sql(self, sql, context=None):
 		payload = '{ "sql":"' + sql + '"' + ("" if context is None else ',{"context":"' + context + '"') + ' }'
+		logging.debug("submit_sql: sql: " + str(sql))
+		logging.debug("submit_sql: payload: " + str(payload))
 		jsn = self._api_post_json(self._post_sql_url, payload, source="submit_sql", as_json=False)
 		if jsn is not None:
 			return jsn["id"]

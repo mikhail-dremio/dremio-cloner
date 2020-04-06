@@ -61,3 +61,9 @@ class DremioClonerUtils:
 
 	def get_sql_context(self, entity):
 		return entity["sqlContext"] if "sqlContext" in entity else None
+
+	def search_list(self, list, key):
+		for item in list:
+			if key in item:
+				return item[key]
+		return None

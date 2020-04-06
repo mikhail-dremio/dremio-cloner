@@ -53,6 +53,7 @@ class DremioWriter:
 	# Resolved Datasets for Reflections
 	_existing_reflections = list()
 	_resolved_reflected_datasets = list()
+	_resolved_wiki_datasets = list()
 
 	# Dry run collections
 	_dry_run_processed_vds_list = []
@@ -68,6 +69,9 @@ class DremioWriter:
 
 	def write_dremio_environment(self):
 		self._retrieve_users_groups()
+
+		if self._config.wiki_process_mode != 'skip':
+			self._resolve_wiki_datasets()
 		if self._config.reflection_process_mode != 'skip':
 			self._existing_reflections = self._dremio_env.list_reflections()['data']
 			self._resolve_reflected_datasets()
@@ -108,7 +112,12 @@ class DremioWriter:
 			self._logger.info("write_dremio_environment: Skipping reflection processing due to configuration reflection.process_mode=skip.")
 		else:
 			for reflection in self._d.reflections:
-				self._write_reflection(reflection, self._config.folder_process_mode)
+				self._write_reflection(reflection, self._config.reflection_process_mode)
+		if self._config.wiki_process_mode == 'skip':
+			self._logger.info("write_dremio_environment: Skipping wiki processing due to configuration wiki.process_mode=skip.")
+		else:
+			for wiki in self._d.wikis:
+				self._write_wiki(wiki, self._config.wiki_process_mode)
 
 	def _write_space(self, entity, process_mode, ignore_missing_acl_user_flag, ignore_missing_acl_group_flag):
 		self._logger.debug("_write_space: processing entity: " + self._utils.get_entity_desc(entity))
@@ -330,6 +339,23 @@ class DremioWriter:
 				self._resolved_reflected_datasets.append({"datasetId": dataset_id, "path": dataset['path']})
 
 
+	def _resolve_wiki_datasets(self):
+		for wiki in self._d.wikis:
+			dataset_id = self._utils.search_list(wiki, 'entity_id')
+			if dataset_id is not None:
+				dataset = None
+				for vds in self._d.vds_list:
+					if dataset_id == vds['id']:
+						dataset = vds
+						break
+				for pds in self._d.pds_list:
+					if dataset_id == pds['id']:
+						dataset = pds
+						break
+				if dataset is not None:
+					self._resolved_wiki_datasets.append({"datasetId": dataset_id, "path": dataset['path']})
+
+
 	def _write_reflection(self, reflection, process_mode):
 		self._logger.debug("_write_reflection: processing reflection: " + self._utils.get_entity_desc(reflection))
 		# Clean up the definition
@@ -345,8 +371,6 @@ class DremioWriter:
 			reflection.pop("currentSizeBytes")
 		if 'totalSizeBytes' in reflection:
 			reflection.pop("totalSizeBytes")
-#		if 'enabled' in reflection:
-#			reflection.pop("enabled")
 		if 'status' in reflection:
 			reflection.pop("status")
 		reflected_dataset = self._find_reflection_dataset(reflection)
@@ -406,6 +430,16 @@ class DremioWriter:
 		return None
 
 
+	# Finds a dataset in the target environment that matches wiki's dataset by path
+	def _find_wiki_dataset(self, dataset_id):
+		for dataset in self._resolved_wiki_datasets:
+			if dataset_id == dataset['datasetId']:
+				# Try to find this dataset in the target environment
+				dataset_entity = self._dremio_env.get_catalog_entity_by_path(self._utils.normalize_path(dataset['path']))
+				return dataset_entity
+		return None
+
+
 	def _find_existing_reflection(self, reflection, dataset):
 		for existing_reflection in self._existing_reflections:
 			# Match reflections by name
@@ -415,6 +449,10 @@ class DremioWriter:
 				if existing_dataset is not None and existing_dataset['path'] == dataset['path']:
 					return existing_reflection
 		return None
+
+
+	def _find_existing_dataset_by_path(self, path):
+		return self._dremio_env.get_catalog_entity_by_path(path)
 
 
 # Searches for Users from entity's ACL in the target environment and either:
@@ -621,3 +659,49 @@ class DremioWriter:
 
 	def get_errors_count(self):
 		return self._logger.errors_encountered
+
+
+	def _write_wiki(self, wiki, process_mode):
+		self._logger.debug("_write_wiki: processing reflection: " + str(wiki))
+		new_wiki_text = self._utils.search_list(wiki, 'text')
+		wiki_entity_id = self._utils.search_list(wiki, 'entity_id')
+		wiki_dataset = self._find_wiki_dataset(wiki_entity_id)
+		if wiki_dataset is None:
+			self._logger.error("_write_wiki: Could not resolve dataset for " + str(wiki))
+			return None
+		# Check if the wiki already exists
+		existing_wiki_dataset = self._find_existing_dataset_by_path(self._utils.normalize_path(wiki_dataset['path']))
+		if existing_wiki_dataset is None:
+			self._logger.error("_write_wiki: Unable to resolve wiki's dataset for " + str(wiki))
+		existing_wiki = self._dremio_env.get_catalog_wiki(existing_wiki_dataset['id'])
+		if existing_wiki is None:  # Need to create new entity
+			if process_mode == 'update_only':
+				self._logger.info("_write_wiki: Skipping wiki creation due to configuration wiki_process_mode. " + str(wiki))
+				return None
+			if self._config.dry_run:
+				self._logger.warn("_write_wiki: Dry Run, NOT Creating reflection: " + str(wiki))
+				return None
+			new_wiki = {"text":new_wiki_text}
+			new_wiki = self._dremio_env.update_wiki(existing_wiki_dataset['id'], new_wiki, self._config.dry_run)
+			if new_wiki is None:
+				self._logger.error("_write_wiki: could not create " + str(wiki))
+				return None
+		else:  # Reflection already exists in the target environment
+			if process_mode == 'create_only':
+				self._logger.info("_write_wiki: Found existing wiki and wiki_process_mode is set to create_only. Skipping " + str(wiki))
+				return None
+			# make sure there are changes to update as it will invalidate existing reflection data
+			if new_wiki_text == existing_wiki['text']:
+				# Nothing to do
+				self._logger.debug("_write_wiki: No pending changes. Skipping " + str(wiki))
+				return None
+			if self._config.dry_run:
+				self._logger.warn("_write_wiki: Dry Run, NOT Updating " + str(wiki))
+				return False
+			self._logger.debug("_write_wiki: Overwriting " + str(wiki))
+			existing_wiki['text'] = new_wiki_text
+			updated_wiki = self._dremio_env.update_wiki(existing_wiki_dataset['id'], existing_wiki, self._config.dry_run)
+			if updated_wiki is None:
+				self._logger.error("_write_wiki: Error updating " + str(wiki))
+				return False
+		return True
