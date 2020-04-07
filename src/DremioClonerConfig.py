@@ -70,6 +70,7 @@ class DremioClonerConfig():
 	logging_verbose = False
 	# Processing 
 	user_process_mode = None				# Flag to process User: process, skip, create_only, update_only, create_overwrite
+	group_process_mode = None				# Flag to process Group: process, skip, create_only, update_only, create_overwrite
 	space_filter = None						# Filter for Space entity type
 	space_exclude_filter = None				# Exclusion Filter for Space entity type
 	space_cascade_acl_origin_override_object = None	# An ACL from this object will be utilized instead of the Space ACL as an ACL to set inside all Folders and VDSs in the Space
@@ -213,6 +214,8 @@ class DremioClonerConfig():
 				self.http_timeout = self._int(item, 'http_timeout')
 			elif 'user.process_mode' in item:
 				self.user_process_mode = self._str(item, 'user.process_mode')
+			elif 'group.process_mode' in item:
+				self.group_process_mode = self._str(item, 'group.process_mode')
 			elif 'space.process_mode' in item:
 				self.space_process_mode = self._str(item, 'space.process_mode')
 			elif 'space.filter' in item:

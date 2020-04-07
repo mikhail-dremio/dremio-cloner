@@ -93,8 +93,9 @@ class DremioFile():
 		if self._config.user_process_mode == 'process':
 			f.write(',')
 			json.dump({'referenced_users':dremio_data.referenced_users}, f)
-		f.write(',')
-		json.dump({'referenced_groups':dremio_data.referenced_groups}, f)
+		if self._config.group_process_mode == 'process':
+			f.write(',')
+			json.dump({'referenced_groups':dremio_data.referenced_groups}, f)
 		if self._config.wlm_queue_process_mode == 'process':
 			f.write(',')
 			json.dump({'queues':dremio_data.queues}, f)
@@ -182,7 +183,8 @@ class DremioFile():
 				os.makedirs(os.path.join(target_directory, 'reflections'))
 			if self._config.user_process_mode == 'process':
 				os.makedirs(os.path.join(target_directory, 'referenced_users'))
-			os.makedirs(os.path.join(target_directory, 'referenced_groups'))
+			if self._config.group_process_mode == 'process':
+				os.makedirs(os.path.join(target_directory, 'referenced_groups'))
 			if self._config.wlm_queue_process_mode == 'process':
 				os.makedirs(os.path.join(target_directory, 'queues'))
 			if self._config.wlm_rule_process_mode == 'process':
@@ -242,8 +244,9 @@ class DremioFile():
 			if self._config.user_process_mode == 'process':
 				for user in dremio_data.referenced_users:
 					self._write_object_json_file(os.path.join(target_directory, "referenced_users"), user)
-			for group in dremio_data.referenced_groups:
-				self._write_object_json_file(os.path.join(target_directory, "referenced_groups"), group)
+			if self._config.group_process_mode == 'process':
+				for group in dremio_data.referenced_groups:
+					self._write_object_json_file(os.path.join(target_directory, "referenced_groups"), group)
 			if self._config.wlm_queue_process_mode == 'process':
 				for queue in dremio_data.queues:
 					self._write_object_json_file(os.path.join(target_directory, "queues"), queue)
