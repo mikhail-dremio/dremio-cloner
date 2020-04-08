@@ -23,7 +23,6 @@
 		{"http_timeout":"10"},
 		{"source.retry_timedout":"false"},
 
-		{"user.process_mode":"skip"},
 		{"space.process_mode":"create_overwrite"},
 		{"folder.process_mode":"create_overwrite"},
 		{"source.process_mode":"create_overwrite"},
@@ -31,6 +30,13 @@
 		{"vds.process_mode":"create_overwrite"},
 	    {"reflection.process_mode": "create_overwrite"},
 	  	{"wiki.process_mode": "process"},
+		{"tag.process_mode": "process"},
+		{"home.process_mode": "process"},
+		{"vote.process_mode": "process"},
+		{"wlm.queue.process_mode": "process"},
+		{"wlm.rule.process_mode": "process"},
+
+		{"transformation": {"acl": {"file": "acl_transformation.json"}}},
 
 		{"space.ignore_missing_acl_user":"True"},
 		{"space.ignore_missing_acl_group":"True"},

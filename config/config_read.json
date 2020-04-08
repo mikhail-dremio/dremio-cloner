@@ -21,8 +21,8 @@
 	{"max_errors":"9999"},
 	{"http_timeout":"10"},
 
-	{"user.process_mode":"skip"},
-	{"group.process_mode":"skip"},
+	{"user.process_mode":"process"},
+	{"group.process_mode":"process"},
 	{"space.process_mode":"process"},
 	{"source.process_mode":"process"},
 	{"reflection.process_mode": "process"},

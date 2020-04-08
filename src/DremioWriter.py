@@ -69,19 +69,14 @@ class DremioWriter:
 
 	def write_dremio_environment(self):
 		self._retrieve_users_groups()
+		if self._config.acl_transformation != {} and self._d.referenced_users == [] and self._d.referenced_groups == []:
+			self._logger.fatal("Cannot process ACL Transformation without Referenced Users or Referenced Groups present in the Source Dremio Data.")
 
 		if self._config.wiki_process_mode != 'skip':
 			self._resolve_wiki_datasets()
 		if self._config.reflection_process_mode != 'skip':
 			self._existing_reflections = self._dremio_env.list_reflections()['data']
 			self._resolve_reflected_datasets()
-		if self._config.user_process_mode == 'skip':
-			self._logger.info("write_dremio_environment: Skipping user processing due to configuration user.process_mode=skip.")
-		else:
-			# API does not provide user creation function yet
-			pass
-			# for user in self._d.referenced_users:
-			# self._write_user()
 		if self._config.source_process_mode == 'skip':
 			self._logger.info("write_dremio_environment: Skipping source processing due to configuration source.process_mode=skip.")
 		else:
@@ -146,9 +141,33 @@ class DremioWriter:
 
 	def _retrieve_users_groups(self):
 		for user in self._d.referenced_users:
-			self._target_dremio_users.append(self._dremio_env.get_user_by_name(user['name']))
+			target_user = self._dremio_env.get_user_by_name(user['name'])
+			if target_user is not None:
+				self._target_dremio_users.append(target_user)
+			else:
+				self._logger.error("_retrieve_users_groups: Unable to resolve user in target Dremio environment: " + str(user['name']))
 		for group in self._d.referenced_groups:
-			self._target_dremio_groups.append(self._dremio_env.get_group_by_name(group['name']))
+			target_group = self._dremio_env.get_group_by_name(group['name'])
+			if target_group is not None:
+				self._target_dremio_groups.append(target_group)
+			else:
+				self._logger.error("_retrieve_users_groups: Unable to resolve group in target Dremio environment: " + str(group['name']))
+		# Retrieve acl transformation target users and groups
+		for item in self._config.acl_transformation:
+			if 'user' in item['target']:
+				user = self._dremio_env.get_user_by_name(item['target']['user'])
+				if user is not None:
+					# dont worry about dups
+					self._target_dremio_users.append(user)
+				else:
+					self._logger.error("_retrieve_users_groups: Unable to resolve ACL_TRANSFORMATION user in target Dremio environment: " + str(item['target']['user']))
+			if 'group' in item['target']:
+				group = self._dremio_env.get_group_by_name(item['target']['group'])
+				if group is not None:
+					# dont worry about dups
+					self._target_dremio_groups.append(group)
+				else:
+					self._logger.error("_retrieve_users_groups: Unable to resolve ACL_TRANSFORMATION group in target Dremio environment: " + str(item['target']['group']))
 
 	def _write_vds_hierarchy(self):
 		for level in range(0, self._hierarchy_depth):
@@ -467,6 +486,7 @@ class DremioWriter:
 			entity.pop('accessControlList')
 			return True
 		acl = entity['accessControlList']
+		transformed_acl = {"users": [], "groups": []}
 		if 'version' in entity:
 			acl.pop('version')
 		if acl == {} or ('users' not in acl and 'groups' not in acl):
@@ -475,55 +495,98 @@ class DremioWriter:
 			if 'users' in acl:
 				# Note, taking a copy of the list for proper removal of items
 				for user_def in acl['users'][:]:
-					new_userid = self._find_matching_userid(user_def['id'])
-					if new_userid is None:
-						# Delete from ACL if flag is set
+					new_acl_principal = self._find_matching_principal_for_userid(user_def['id'])
+					if new_acl_principal is None:
 						if ignore_missing_acl_user_flag:
 							self._logger.warn("Source User " + user_def['id'] + " not found in the target Dremio Environment. User is removed from ACL definition as per ignore_missing_acl_user configuration. " + self._utils.get_entity_desc(entity))
-							acl['users'].remove(user_def)
 						else:
-							# Flag is not set - return error status
 							self._logger.error("Source User " + user_def['id'] + " not found in the target Dremio Environment. ACL Entry cannot be processed as per ignore_missing_acl_user configuration. " + self._utils.get_entity_desc(entity))
-							return False
-					else:
-						# Update ACL
-						user_def['id'] = new_userid
+					elif "user" in new_acl_principal:
+						transformed_acl['users'].append({"id":new_acl_principal["user"],"permissions":user_def['permissions']})
+					elif "group" in new_acl_principal:
+						transformed_acl['groups'].append({"id":new_acl_principal["group"],"permissions":user_def['permissions']})
 			if 'groups' in acl:
 				# Note, taking a copy of the list for proper removal of items
 				for group_def in acl['groups'][:]:
-					new_groupid = self._find_matching_groupid(group_def['id'])
-					if new_groupid is None:
-						# Delete from ACL if flag is set
+					new_acl_principal = self._find_matching_principal_for_groupid(group_def['id'])
+					if new_acl_principal is None:
 						if ignore_missing_acl_group_flag:
 							self._logger.warn("Source Group " + group_def['id'] + " not found in the target Dremio Environment. Group is removed from ACL definition as per ignore_missing_acl_group configuration. " + self._utils.get_entity_desc(entity))
-							acl['groups'].remove(group_def)
 						else:
 							# Flag is not set - return error status
 							self._logger.error("Source Group " + group_def['id'] + " not found in the target Dremio Environment. ACL Entry cannot be processed as per ignore_missing_acl_group configuration. " + self._utils.get_entity_desc(entity))
-							return False
-					else:
-						# Update ACL
-						group_def['id'] = new_groupid
-			if ('users' not in acl or acl['users'] == []) and ('groups' not in acl or acl['groups'] == []):
-				entity.pop('accessControlList')
+					elif "user" in new_acl_principal:
+						transformed_acl['users'].append({"id":new_acl_principal["user"],"permissions":user_def['permissions']})
+					elif "group" in new_acl_principal:
+						transformed_acl['groups'].append({"id":new_acl_principal["group"],"permissions":user_def['permissions']})
+			entity['accessControlList'] = transformed_acl
+#			if ('users' not in acl or acl['users'] == []) and ('groups' not in acl or acl['groups'] == []):
+#				entity.pop('accessControlList')
 		return True
 
-	def _find_matching_userid(self, userid):
+	def _find_matching_principal_for_userid(self, userid):
 		self._logger.debug("_find_matching_userid userid: processing: " + str(userid))
 		for user in self._d.referenced_users:
 			if user['id'] == userid:
-				for target_user in self._target_dremio_users:
-					if target_user['name'] == user['name']:
-						return target_user['id']
+				transformed_principal = self._find_acl_transformation_by_username(user['name'])
+				# If no tranformation is defined for this user
+				if transformed_principal is None:
+					for target_user in self._target_dremio_users:
+						if target_user['name'] == user['name']:
+							return {"user":target_user['id']}
+				elif "error" in transformed_principal:
+					# Something went wrong
+					return None
+				else:
+					return transformed_principal
 		return None
 
-	def _find_matching_groupid(self, groupid):
+	def _find_acl_transformation_by_username(self, username):
+		for item in self._config.acl_transformation:
+			if 'user' in item['source'] and item['source']['user'] == username:
+				if "user" in item['target']:
+					for target_user in self._target_dremio_users:
+						if target_user['name'] == item['target']['user']:
+							return {"user":target_user['id']}
+				elif "group" in item['target']:
+					for target_group in self._target_dremio_groups:
+						if target_group['name'] == item['target']['group']:
+							return {"group":target_group['id']}
+				# The transformation is defined for this user, however, the target principal is not in the target Dremio Environment
+				return {"error": "user_transformation_found_target_principle_is_not_in_target_dremio_environment"}
+		return None
+
+	def _find_matching_principal_for_groupid(self, groupid):
 		self._logger.debug("_find_matching_groupid: processing: " + str(groupid))
 		for group in self._d.referenced_groups:
 			if group['id'] == groupid:
-				for target_group in self._target_dremio_groups:
-					if target_group['name'] == group['name']:
-						return target_group['id']
+				transformed_principal = self._find_acl_transformation_by_groupname(group['name'])
+				# If no transformation is defined for this group
+				if transformed_principal is None:
+					for target_group in self._target_dremio_groups:
+						if target_group['name'] == group['name']:
+							return {"group":target_group['id']}
+				elif "error" in transformed_principal:
+					# Something went wrong
+					return None
+				else:
+					return transformed_principal
+		return None
+
+
+	def _find_acl_transformation_by_groupname(self, groupname):
+		for item in self._config.acl_transformation:
+			if 'group' in item['source'] and item['source']['group'] == groupname:
+				if "user" in item['target']:
+					for target_user in self._target_dremio_users:
+						if target_user['name'] == item['target']['user']:
+							return {"user":target_user['id']}
+				elif "group" in item['target']:
+					for target_group in self._target_dremio_groups:
+						if target_group['name'] == item['target']['group']:
+							return {"group":target_group['id']}
+				# The transformation is defined for this group, however, the target principal is not in the target Dremio Environment
+				return {"error": "group_transformation_found_target_principle_is_not_in_target_dremio_environment"}
 		return None
 
 	def _read_entity_definition(self, entity):

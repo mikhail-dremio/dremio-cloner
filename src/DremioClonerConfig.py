@@ -69,8 +69,8 @@ class DremioClonerConfig():
 	logging_filename = None
 	logging_verbose = False
 	# Processing 
-	user_process_mode = None				# Flag to process User: process, skip, create_only, update_only, create_overwrite
-	group_process_mode = None				# Flag to process Group: process, skip, create_only, update_only, create_overwrite
+	user_process_mode = None				# Flag to process User: process, skip
+	group_process_mode = None				# Flag to process Group: process, skip
 	space_filter = None						# Filter for Space entity type
 	space_exclude_filter = None				# Exclusion Filter for Space entity type
 	space_cascade_acl_origin_override_object = None	# An ACL from this object will be utilized instead of the Space ACL as an ACL to set inside all Folders and VDSs in the Space
@@ -112,6 +112,7 @@ class DremioClonerConfig():
 	tag_process_mode ='process'				# Flag to process Tags: process, skip
 	home_process_mode = 'process'			# Flag to process Homes: process, skip
 	vote_process_mode = 'process'			# Flag to process Votes: process, skip
+	acl_transformation = {}					# Contains all ACL tranformation definitions
 
 
 	# Report options
@@ -318,6 +319,11 @@ class DremioClonerConfig():
 				self.home_process_mode = self._str(item, 'home.process_mode')
 			elif 'vote.process_mode' in item:
 				self.vote_process_mode = self._str(item, 'vote.process_mode')
+			elif 'transformation' in item:
+				acl_transformation_filename = self._str(item['transformation']['acl'], 'file')
+				f = open(acl_transformation_filename, "r")
+				self.acl_transformation = json.load(f)['acl-transformation']
+				f.close()
 
 	def _validate_configuration(self):
 		if (self.command is None):
