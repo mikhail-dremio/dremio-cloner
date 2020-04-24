@@ -252,11 +252,11 @@ class Dremio:
 			return
 		return self._api_post_json(self._catalog_url, entity, source="create_catalog_entity")
 
-	def update_catalog_entity(self, entity_id, entity, dry_run=True):
+	def update_catalog_entity(self, entity_id, entity, dry_run=True, report_error=True):
 		if dry_run:
 			logging.warn("update_catalog_entity: Dry Run. Not submitting changes to API.")
 			return
-		return self._api_put_json(self._catalog_url + entity_id, entity, source="update_catalog_entity")
+		return self._api_put_json(self._catalog_url + entity_id, entity, source="update_catalog_entity", report_error = report_error)
 
 	def create_reflection(self, reflection, dry_run=True):
 		if dry_run:
@@ -379,7 +379,7 @@ class Dremio:
 			else:
 				logging.error(source + ": received HTTP Response Code " + str(response.status_code) +
 							  " for : <" + str(url) + ">" + self._get_error_message(response))
-				self.errors_encountered = self.errors_encountered + 1
+			self.errors_encountered = self.errors_encountered + 1
 			return None
 		except requests.exceptions.Timeout:
 			# This situation might happen when an underlying object (file system eg) is not responding
@@ -388,29 +388,41 @@ class Dremio:
 			return None
 
 	# Returns JSON if success or None
-	def _api_put_json(self, url, json_data, source=""):
+	def _api_put_json(self, url, json_data, source="", report_error = True):
 		try:
 			response = requests.request("PUT", self._endpoint + url, json=json_data, headers=self._headers, timeout=self._api_timeout, verify=self._verify_ssl)
 			if response.status_code == 200:
 				return response.json()
 			elif response.status_code == 400:  # The supplied CatalogEntity object is invalid.
-				logging.error(source + ": received HTTP Response Code 400 for : <" + str(url) + ">" +
+				if report_error:
+					logging.error(source + ": received HTTP Response Code 400 for : <" + str(url) + ">" +
 							  self._get_error_message(response))
+				else:
+					logging.debug(source + ": received HTTP Response Code 400 for : <" + str(url) + ">" +
+								  self._get_error_message(response))
 			elif response.status_code == 403:  # User does not have permission to create the catalog entity.
 				logging.critical(source + ": received HTTP Response Code 403 for : <" + str(url) + ">" +
 								 self._get_error_message(response))
 				raise RuntimeError(
 					"Specified user does not have sufficient priviliges to create objects in the target Dremio Environment.")
 			elif response.status_code == 409:  # A catalog entity with the specified path already exists.
-				logging.error(source + ": received HTTP Response Code 409 for : <" + str(url) + ">" +
+				if report_error:
+					logging.error(source + ": received HTTP Response Code 409 for : <" + str(url) + ">" +
 							  self._get_error_message(response))
+				else:
+					logging.debug(source + ": received HTTP Response Code 409 for : <" + str(url) + ">" +
+								  self._get_error_message(response))
 			elif response.status_code == 404:  # Not found
 				logging.info(source + ": received HTTP Response Code 404 for : <" + str(url) + ">" +
 							 self._get_error_message(response))
 			else:
-				logging.error(source + ": received HTTP Response Code " + str(response.status_code) +
+				if report_error:
+					logging.error(source + ": received HTTP Response Code " + str(response.status_code) +
 							  " for : <" + str(url) + ">" + self._get_error_message(response))
-				self.errors_encountered = self.errors_encountered + 1
+				else:
+					logging.debug(source + ": received HTTP Response Code " + str(response.status_code) +
+								  " for : <" + str(url) + ">" + self._get_error_message(response))
+			self.errors_encountered = self.errors_encountered + 1
 			return None
 		except requests.exceptions.Timeout:
 			# This situation might happen when an underlying object (file system eg) is not responding

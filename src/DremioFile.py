@@ -255,10 +255,10 @@ class DremioFile():
 					self._write_object_json_file(os.path.join(target_directory, "rules"), rule)
 			if self._config.tag_process_mode == 'process':
 				for tag in dremio_data.tags:
-					self._write_wiki_tag_json_file(os.path.join(target_directory, "tags"), tag)
+					self._write_tag_json_file(os.path.join(target_directory, "tags"), tag)
 			if self._config.wiki_process_mode == 'process':
 				for wiki in dremio_data.wikis:
-					self._write_wiki_tag_json_file(os.path.join(target_directory, "wikis"), wiki)
+					self._write_wiki_json_file(os.path.join(target_directory, "wikis"), wiki)
 			if self._config.vote_process_mode == 'process':
 				for vote in dremio_data.votes:
 					self._write_vote_json_file(os.path.join(target_directory, "votes"), vote)
@@ -313,8 +313,15 @@ class DremioFile():
 		f.close()
 
 
-	def _write_wiki_tag_json_file(self, root_dir, wiki):
-		filepath = os.path.join(root_dir, wiki[0]['entity_id'] + ".json")
+	def _write_wiki_json_file(self, root_dir, wiki):
+		filepath = os.path.join(root_dir, wiki['entity_id'] + ".json")
+		f = open(filepath, "w")
+		json.dump(wiki, f)
+		f.close()
+
+
+	def _write_tag_json_file(self, root_dir, wiki):
+		filepath = os.path.join(root_dir, wiki['entity_id'] + ".json")
 		f = open(filepath, "w")
 		json.dump(wiki, f)
 		f.close()

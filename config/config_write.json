@@ -29,7 +29,7 @@
 		{"pds.process_mode":"promote"},
 		{"vds.process_mode":"create_overwrite"},
 	    {"reflection.process_mode": "create_overwrite"},
-	  	{"wiki.process_mode": "process"},
+	  	{"wiki.process_mode": "create_overwrite"},
 		{"tag.process_mode": "process"},
 		{"home.process_mode": "process"},
 		{"vote.process_mode": "process"},

@@ -52,8 +52,6 @@ class DremioWriter:
 
 	# Resolved Datasets for Reflections
 	_existing_reflections = list()
-	_resolved_reflected_datasets = list()
-	_resolved_wiki_datasets = list()
 
 	# Dry run collections
 	_dry_run_processed_vds_list = []
@@ -72,11 +70,8 @@ class DremioWriter:
 		if self._config.acl_transformation != {} and self._d.referenced_users == [] and self._d.referenced_groups == []:
 			self._logger.fatal("Cannot process ACL Transformation without Referenced Users or Referenced Groups present in the Source Dremio Data.")
 
-		if self._config.wiki_process_mode != 'skip':
-			self._resolve_wiki_datasets()
 		if self._config.reflection_process_mode != 'skip':
 			self._existing_reflections = self._dremio_env.list_reflections()['data']
-			self._resolve_reflected_datasets()
 		if self._config.source_process_mode == 'skip':
 			self._logger.info("write_dremio_environment: Skipping source processing due to configuration source.process_mode=skip.")
 		else:
@@ -182,7 +177,7 @@ class DremioWriter:
 		if not self._d.vds_list and not self._unresolved_vds:
 			return
 		else:
-			self._logger.error("_write_remainder_vds: Attempt processing VDSs that failed ordering. Ignore errors until next message from _write_remainder_vds.")
+			self._logger.info("_write_remainder_vds: Attempt processing VDSs that failed ordering.")
 		# Attempt to process max_hierarchy_depth
 		for h in range(1, self._config.vds_max_hierarchy_depth):
 			# These are VDSs that have all dependencies validated but could not be placed in the hierarchy
@@ -191,7 +186,7 @@ class DremioWriter:
 				vds = self._d.vds_list[i]
 				if self._filter.match_vds_filter(vds):
 					self._logger.debug("_write_remainder_vds: writing vds: " + self._utils.get_entity_desc(vds))
-					if self._write_entity(vds, self._config.vds_process_mode, self._config.vds_ignore_missing_acl_user, self._config.vds_ignore_missing_acl_group):
+					if self._write_entity(vds, self._config.vds_process_mode, self._config.vds_ignore_missing_acl_user, self._config.vds_ignore_missing_acl_group, False):
 						self._d.vds_list.remove(vds)
 				else:
 					self._d.vds_list.remove(vds)
@@ -201,12 +196,12 @@ class DremioWriter:
 				vds = self._unresolved_vds[i]
 				if self._filter.match_vds_filter(vds):
 					self._logger.debug("_write_remainder_vds: writing vds: " + self._utils.get_entity_desc(vds))
-					if self._write_entity(vds, self._config.vds_process_mode, self._config.vds_ignore_missing_acl_user, self._config.vds_ignore_missing_acl_group):
+					if self._write_entity(vds, self._config.vds_process_mode, self._config.vds_ignore_missing_acl_user, self._config.vds_ignore_missing_acl_group, False):
 						self._unresolved_vds.remove(vds)
 				else:
 					self._unresolved_vds.remove(vds)
 		if self._d.vds_list != [] or self._unresolved_vds != []:
-			self._logger.error('_write_remainder_vds: Attempt processing VDSs that failed ordering. The following VDSs failed. Set log level to DEBUG and see prior error messages for more information.')
+			self._logger.warn('_write_remainder_vds: After attempting to process VDSs that failed ordering, the following VDSs still failed. Set log level to DEBUG and see prior error messages for more information.')
 			for vds in self._d.vds_list:
 				self._logger.error("Failed VDS: " + str(vds['path']))
 			for vds in self._unresolved_vds:
@@ -221,7 +216,7 @@ class DremioWriter:
 			return True
 		self._logger.error("_write_user: Cannot create users. API is not implemented.")
 
-	def _write_entity(self, entity, process_mode, ignore_missing_acl_user_flag, ignore_missing_acl_group_flag):
+	def _write_entity(self, entity, process_mode, ignore_missing_acl_user_flag, ignore_missing_acl_group_flag, report_error = True):
 		self._logger.debug("_write_entity: processing entity: " + self._utils.get_entity_desc(entity))
 		# Clean up the definition
 		if 'id' in entity:
@@ -259,7 +254,8 @@ class DremioWriter:
 			# Note for the CE target env, the ACL should have been popped out by _process_acl
 			new_entity = self._dremio_env.create_catalog_entity(entity, self._config.dry_run)
 			if new_entity is None:
-				self._logger.error("_write_entity: could not create entity: " + self._utils.get_entity_desc(entity))
+				if report_error:
+					self._logger.error("_write_entity: could not create entity: " + self._utils.get_entity_desc(entity))
 				return False
 		else:  # Entity already exists in the target environment
 			if process_mode == 'create_only':
@@ -284,9 +280,10 @@ class DremioWriter:
 			if self._config.dry_run:
 				self._logger.warn("_write_entity: Dry Run, NOT Updating entity: " + self._utils.get_entity_desc(entity))
 				return False
-			updated_entity = self._dremio_env.update_catalog_entity(entity['id'], entity, self._config.dry_run)
+			updated_entity = self._dremio_env.update_catalog_entity(entity['id'], entity, self._config.dry_run, report_error)
 			if updated_entity is None:
-				self._logger.error("_write_entity: Error updating entity: " + self._utils.get_entity_desc(entity))
+				if report_error:
+					self._logger.error("_write_entity: Error updating entity: " + self._utils.get_entity_desc(entity))
 				return False
 		return True
 
@@ -342,39 +339,6 @@ class DremioWriter:
 		return True
 
 
-	def _resolve_reflected_datasets(self):
-		for reflection in self._d.reflections:
-			dataset_id = reflection['datasetId']
-			dataset = None
-			for vds in self._d.vds_list:
-				if dataset_id == vds['id']:
-					dataset = vds
-					break
-			for pds in self._d.pds_list:
-				if dataset_id == pds['id']:
-					dataset = pds
-					break
-			if dataset is not None:
-				self._resolved_reflected_datasets.append({"datasetId": dataset_id, "path": dataset['path']})
-
-
-	def _resolve_wiki_datasets(self):
-		for wiki in self._d.wikis:
-			dataset_id = self._utils.search_list(wiki, 'entity_id')
-			if dataset_id is not None:
-				dataset = None
-				for vds in self._d.vds_list:
-					if dataset_id == vds['id']:
-						dataset = vds
-						break
-				for pds in self._d.pds_list:
-					if dataset_id == pds['id']:
-						dataset = pds
-						break
-				if dataset is not None:
-					self._resolved_wiki_datasets.append({"datasetId": dataset_id, "path": dataset['path']})
-
-
 	def _write_reflection(self, reflection, process_mode):
 		self._logger.debug("_write_reflection: processing reflection: " + self._utils.get_entity_desc(reflection))
 		# Clean up the definition
@@ -392,7 +356,9 @@ class DremioWriter:
 			reflection.pop("totalSizeBytes")
 		if 'status' in reflection:
 			reflection.pop("status")
-		reflected_dataset = self._find_reflection_dataset(reflection)
+		reflection_path = reflection['path']
+		reflection.pop("path")
+		reflected_dataset = self._dremio_env.get_catalog_entity_by_path(self._utils.normalize_path(reflection_path))
 		if reflected_dataset is None:
 			self._logger.error("_write_reflection: Could not resolve dataset for " + self._utils.get_entity_desc(reflection))
 			return None
@@ -436,27 +402,6 @@ class DremioWriter:
 				self._logger.error("_write_reflection: Error updating " + self._utils.get_entity_desc(reflection))
 				return False
 		return True
-
-
-	# Finds a dataset in the target environment that matches reflection's dataset by path
-	def _find_reflection_dataset(self, reflection):
-		dataset_id = reflection['datasetId']
-		for dataset in self._resolved_reflected_datasets:
-			if dataset_id == dataset['datasetId']:
-				# Try to find this dataset in the target environment
-				dataset_entity = self._dremio_env.get_catalog_entity_by_path(self._utils.normalize_path(dataset['path']))
-				return dataset_entity
-		return None
-
-
-	# Finds a dataset in the target environment that matches wiki's dataset by path
-	def _find_wiki_dataset(self, dataset_id):
-		for dataset in self._resolved_wiki_datasets:
-			if dataset_id == dataset['datasetId']:
-				# Try to find this dataset in the target environment
-				dataset_entity = self._dremio_env.get_catalog_entity_by_path(self._utils.normalize_path(dataset['path']))
-				return dataset_entity
-		return None
 
 
 	def _find_existing_reflection(self, reflection, dataset):
@@ -516,12 +461,10 @@ class DremioWriter:
 							# Flag is not set - return error status
 							self._logger.error("Source Group " + group_def['id'] + " not found in the target Dremio Environment. ACL Entry cannot be processed as per ignore_missing_acl_group configuration. " + self._utils.get_entity_desc(entity))
 					elif "user" in new_acl_principal:
-						transformed_acl['users'].append({"id":new_acl_principal["user"],"permissions":user_def['permissions']})
+						transformed_acl['users'].append({"id":new_acl_principal["user"],"permissions":group_def['permissions']})
 					elif "group" in new_acl_principal:
-						transformed_acl['groups'].append({"id":new_acl_principal["group"],"permissions":user_def['permissions']})
+						transformed_acl['groups'].append({"id":new_acl_principal["group"],"permissions":group_def['permissions']})
 			entity['accessControlList'] = transformed_acl
-#			if ('users' not in acl or acl['users'] == []) and ('groups' not in acl or acl['groups'] == []):
-#				entity.pop('accessControlList')
 		return True
 
 	def _find_matching_principal_for_userid(self, userid):
@@ -726,17 +669,13 @@ class DremioWriter:
 
 	def _write_wiki(self, wiki, process_mode):
 		self._logger.debug("_write_wiki: processing reflection: " + str(wiki))
-		new_wiki_text = self._utils.search_list(wiki, 'text')
-		wiki_entity_id = self._utils.search_list(wiki, 'entity_id')
-		wiki_dataset = self._find_wiki_dataset(wiki_entity_id)
-		if wiki_dataset is None:
-			self._logger.error("_write_wiki: Could not resolve dataset for " + str(wiki))
-			return None
+		new_wiki_text = wiki['text']
+		wiki_path = wiki['path']
 		# Check if the wiki already exists
-		existing_wiki_dataset = self._find_existing_dataset_by_path(self._utils.normalize_path(wiki_dataset['path']))
-		if existing_wiki_dataset is None:
+		existing_wiki_entity = self._find_existing_dataset_by_path(self._utils.normalize_path(wiki_path))
+		if existing_wiki_entity is None:
 			self._logger.error("_write_wiki: Unable to resolve wiki's dataset for " + str(wiki))
-		existing_wiki = self._dremio_env.get_catalog_wiki(existing_wiki_dataset['id'])
+		existing_wiki = self._dremio_env.get_catalog_wiki(existing_wiki_entity['id'])
 		if existing_wiki is None:  # Need to create new entity
 			if process_mode == 'update_only':
 				self._logger.info("_write_wiki: Skipping wiki creation due to configuration wiki_process_mode. " + str(wiki))
@@ -745,7 +684,7 @@ class DremioWriter:
 				self._logger.warn("_write_wiki: Dry Run, NOT Creating reflection: " + str(wiki))
 				return None
 			new_wiki = {"text":new_wiki_text}
-			new_wiki = self._dremio_env.update_wiki(existing_wiki_dataset['id'], new_wiki, self._config.dry_run)
+			new_wiki = self._dremio_env.update_wiki(existing_wiki_entity['id'], new_wiki, self._config.dry_run)
 			if new_wiki is None:
 				self._logger.error("_write_wiki: could not create " + str(wiki))
 				return None
@@ -763,7 +702,7 @@ class DremioWriter:
 				return False
 			self._logger.debug("_write_wiki: Overwriting " + str(wiki))
 			existing_wiki['text'] = new_wiki_text
-			updated_wiki = self._dremio_env.update_wiki(existing_wiki_dataset['id'], existing_wiki, self._config.dry_run)
+			updated_wiki = self._dremio_env.update_wiki(existing_wiki_entity['id'], existing_wiki, self._config.dry_run)
 			if updated_wiki is None:
 				self._logger.error("_write_wiki: Error updating " + str(wiki))
 				return False

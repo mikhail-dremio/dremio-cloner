@@ -236,7 +236,13 @@ class DremioReader:
 		if self._config.reflection_process_mode == 'process' and not self._config.source_ce:
 			reflections = self._dremio_env.list_reflections()['data']
 			for reflection in reflections:
-				self._logger.debug("_read_reflections: processing reflection " + reflection['datasetId'])
+				reflection_dataset = self._dremio_env.get_catalog_entity_by_id(reflection['datasetId'])
+				if reflection_dataset is None:
+					self._logger.debug("_read_reflections: error processing reflection, cannot get path for dataset: " + reflection['datasetId'])
+					continue
+				reflection_path = reflection_dataset['path']
+				self._logger.debug("_read_reflections: processing reflection " + reflection['datasetId'] + " path: " + str(reflection_path))
+				reflection["path"] = reflection_path
 				self._d.reflections.append(reflection)
 				self._read_acl(reflection)
 				self._read_wiki(reflection)
@@ -249,9 +255,13 @@ class DremioReader:
 		if self._config.tag_process_mode == 'process':
 			tag = self._dremio_env.get_catalog_tags(entity['id'])
 			if tag is not None:
-				tag_json = [{"entity_id": entity['id'], }, tag]
-				if tag_json not in self._d.tags:
-					self._d.tags.append(tag_json)
+				tag['entity_id'] = entity['id']
+				if entity['entityType'] == 'space' or entity['entityType'] == 'source':
+					tag['path'] = [entity['name']]
+				else:
+					tag['path'] = entity['path']
+				if tag not in self._d.tags:
+					self._d.tags.append(tag)
 		else:
 			self._logger.debug("_read_tags: skipping tags processing as per job configuration")
 
@@ -260,9 +270,15 @@ class DremioReader:
 		if self._config.wiki_process_mode == 'process':
 			wiki = self._dremio_env.get_catalog_wiki(entity['id'])
 			if wiki is not None:
-				wiki_json = [{"entity_id": entity['id']}, wiki]
-				if wiki_json not in self._d.wikis:
-					self._d.wikis.append(wiki_json)
+				wiki["entity_id"] = entity['id']
+				if entity['entityType'] == 'space' or entity['entityType'] == 'source':
+					wiki['path'] = [entity['name']]
+#					wiki_json = [{"entity_id": entity['id'], "path": [entity['name']]}, wiki]
+				else:
+#					wiki_json = [{"entity_id": entity['id'], "path": entity['path']}, wiki]
+					wiki['path'] = entity['path']
+				if wiki not in self._d.wikis:
+					self._d.wikis.append(wiki)
 		else:
 			self._logger.debug("_read_wiki: skipping wiki processing as per job configuration")
 

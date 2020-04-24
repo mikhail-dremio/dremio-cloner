@@ -108,7 +108,7 @@ class DremioClonerConfig():
 	reflection_process_mode = None			# Flag to process VDS: process, skip, create_only, update_only, create_overwrite
 	wlm_queue_process_mode = 'process'		# Flag to process WLM Queues: process, skip
 	wlm_rule_process_mode = 'process'		# Flag to process WLM Rules: process, skip
-	wiki_process_mode = 'process'			# Flag to process Wikis: process, skip
+	wiki_process_mode = 'process'			# Flag to process Wikis: process, skip, create_only, update_only, create_overwrite
 	tag_process_mode ='process'				# Flag to process Tags: process, skip
 	home_process_mode = 'process'			# Flag to process Homes: process, skip
 	vote_process_mode = 'process'			# Flag to process Votes: process, skip
