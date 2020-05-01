@@ -362,6 +362,7 @@ class DremioWriter:
 		if reflected_dataset is None:
 			self._logger.error("_write_reflection: Could not resolve dataset for " + self._utils.get_entity_desc(reflection))
 			return None
+		reflection['datasetId'] = reflected_dataset['id']
 		# Check if the reflection already exists
 		existing_reflection = self._find_existing_reflection(reflection, reflected_dataset)
 		if existing_reflection is None:  # Need to create new entity
