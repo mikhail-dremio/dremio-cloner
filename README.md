@@ -110,7 +110,6 @@ The command is configured with a JSON file with configuration attributes listed 
     - &quot;source.retry\_timedout&quot;
     - &quot;dry\_run&quot;
   - processing of _User_ and _Group_ objects missing in the target environemnt
-    - &quot;user.process\_mode&quot;
     - &quot;space.ignore\_missing\_acl\_user&quot;
     - &quot;space.ignore\_missing\_acl\_group&quot;
     - &quot;folder.ignore\_missing\_acl\_user&quot;
@@ -374,7 +373,7 @@ Note, that this command does not provide any option for Scope definition. Please
 
 | **Configuration Option** | **Description** |
 | --- | --- |
-| user.process\_mode | Determines if users will be created in the target Dremio Environment if they are referenced in the source JSON file but not in the target environment. Applicable for &quot;put&quot; command only. However, user creation is not possible with the current Dremio API. This parameter can only have a single value _skip_. |
+| user.process\_mode group.process\_mode | Determines if users will be created in the target Dremio Environment if they are referenced in the source JSON file but not in the target environment. Applicable for &quot;put&quot; command only. However, user creation is not possible with the current Dremio API. This parameter can only have a single value _skip_. |
 | space.ignore\_missing\_acl\_user space.ignore\_missing\_acl\_group folder.ignore\_missing\_acl\_user folder.ignore\_missing\_acl\_group source.ignore\_missing\_acl\_user source.ignore\_missing\_acl\_group pds.ignore\_missing\_acl\_user pds.ignore\_missing\_acl\_group vds.ignore\_missing\_acl\_user vds.ignore\_missing\_acl\_group | These configuration parameters define if Dremio Cloner ignores a situation when a user or a group is defined in an ACL in the source JSON file but is not present in the target Dremio Environment. This situation is a potential security risk as an ACL may be created with no limitations in the target environment when all referenced users and groups cannot be found. Default value is False. |
 
 ### Scope of object-level processing
