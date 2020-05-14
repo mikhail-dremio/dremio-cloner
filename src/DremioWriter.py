@@ -103,6 +103,11 @@ class DremioWriter:
 		else:
 			for reflection in self._d.reflections:
 				self._write_reflection(reflection, self._config.reflection_process_mode)
+		if self._config.reflection_refresh_mode != 'refresh':
+			self._logger.info("write_dremio_environment: Skipping reflection refresh due to configuration reflection.refresh_mode=skip.")
+		else:
+			for pds in self._d.pds_list:
+				self._dremio_env.refresh_reflections_by_pds_path(self._utils.normalize_path(pds['path']), self._config.dry_run)
 		if self._config.wiki_process_mode == 'skip':
 			self._logger.info("write_dremio_environment: Skipping wiki processing due to configuration wiki.process_mode=skip.")
 		else:
@@ -207,7 +212,7 @@ class DremioWriter:
 			for vds in self._unresolved_vds:
 				self._logger.error("Failed VDS: " + str(vds['path']))
 		else:
-			self._logger.error("_write_remainder_vds: Finished processing VDSs that failed ordering. All VDSs have been successfuly processed.")
+			self._logger.warn("_write_remainder_vds: Finished processing VDSs that failed ordering. All VDSs have been successfuly processed.")
 
 
 	def _write_user(self):
@@ -256,6 +261,8 @@ class DremioWriter:
 			if new_entity is None:
 				if report_error:
 					self._logger.error("_write_entity: could not create entity: " + self._utils.get_entity_desc(entity))
+				else:
+					self._logger.debug("_write_entity: could not create entity: " + self._utils.get_entity_desc(entity))
 				return False
 		else:  # Entity already exists in the target environment
 			if process_mode == 'create_only':
@@ -284,6 +291,8 @@ class DremioWriter:
 			if updated_entity is None:
 				if report_error:
 					self._logger.error("_write_entity: Error updating entity: " + self._utils.get_entity_desc(entity))
+				else:
+					self._logger.debug("_write_entity: Error updating entity: " + self._utils.get_entity_desc(entity))
 				return False
 		return True
 
@@ -547,7 +556,7 @@ class DremioWriter:
 	def _order_vds(self, processing_level=0):
 		# Verify for the Max Hierarchy Depth
 		if processing_level >= self._config.vds_max_hierarchy_depth:
-			self._logger.error("_order_vds: Finished processing with VDSs left to process:" + str(self._d.vds_list))
+			self._logger.debug("_order_vds: Finished processing with VDSs left to process:" + str(self._d.vds_list))
 			return
 		any_vds_leveled = False
 		# Iterate through the remainder VDS in the list

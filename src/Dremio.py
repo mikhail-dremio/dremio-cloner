@@ -41,6 +41,7 @@ class Dremio:
 	_post_sql_url = "api/v3/sql"
 	_get_job_url = "api/v3/job/"
 	_graph_url_postfix = "graph"
+	_refresh_reflections_postfix = "refresh"
 	_endpoint = ""
 	_authtoken = ""
 	_headers = ""
@@ -270,6 +271,21 @@ class Dremio:
 			return
 		return self._api_put_json(self._reflections_url + reflection_id, reflection, source="update_reflection")
 
+	def refresh_reflections_by_pds_id(self, pds_entity_id, dry_run=True):
+		if dry_run:
+			logging.warn("refresh_reflections_by_pds_id: Dry Run. Not submitting request to API.")
+			return
+		return self._api_post_json(self._reflections_url + pds_entity_id + self._refresh_reflections_postfix, "", source="refresh_reflections_by_pds_id")
+
+	def refresh_reflections_by_pds_path(self, pds_entity_path, dry_run=True):
+		if dry_run:
+			logging.warn("refresh_reflections_by_pds_path: Dry Run. Not submitting request to API.")
+			return
+		pds = self.get_catalog_entity_by_path(pds_entity_path)
+		pds_entity_id = pds['id']
+		result =  self._api_post_json(self._catalog_url + pds_entity_id + "/" + self._refresh_reflections_postfix, None, source="refresh_reflections_by_pds_path")
+		return result
+
 	def update_wiki(self, catalog_id, wiki, dry_run=True):
 		if dry_run:
 			logging.warn("update_wiki: Dry Run. Not submitting changes to API.")
@@ -356,12 +372,17 @@ class Dremio:
 	# Returns JSON if success or None
 	def _api_post_json(self, url, json_data, source="", as_json=True):
 		try:
-			if as_json:
+			if json_data is None:
+				response = requests.request("POST", self._endpoint + url, headers=self._headers, timeout=self._api_timeout, verify=self._verify_ssl)
+			elif as_json:
 				response = requests.request("POST", self._endpoint + url, json=json_data, headers=self._headers, timeout=self._api_timeout, verify=self._verify_ssl)
 			else:
 				response = requests.request("POST", self._endpoint + url, data=json_data, headers=self._headers, timeout=self._api_timeout, verify=self._verify_ssl)
 			if response.status_code == 200:
 				return response.json()
+			# Success, but no response
+			elif response.status_code == 204:
+				return None
 			elif response.status_code == 400:
 				logging.error(source + ": received HTTP Response Code " + str(response.status_code) +
 							  " for : <" + str(url) + ">" + self._get_error_message(response))

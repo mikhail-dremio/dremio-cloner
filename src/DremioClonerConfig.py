@@ -106,6 +106,7 @@ class DremioClonerConfig():
 	vds_ignore_missing_acl_group = False	# Flag to write a VDS if an ACL group is missing in the target Dremio environment
 	vds_max_hierarchy_depth = 100			# The max hierarchy depth to process
 	reflection_process_mode = None			# Flag to process VDS: process, skip, create_only, update_only, create_overwrite
+	reflection_refresh_mode = 'skip' 		# Flag to refresh reflections: refresh, skip
 	wlm_queue_process_mode = 'process'		# Flag to process WLM Queues: process, skip
 	wlm_rule_process_mode = 'process'		# Flag to process WLM Rules: process, skip
 	wiki_process_mode = 'process'			# Flag to process Wikis: process, skip, create_only, update_only, create_overwrite
@@ -301,6 +302,8 @@ class DremioClonerConfig():
 			# Reflection options
 			elif 'reflection.process_mode' in item:
 				self.reflection_process_mode = self._str(item, 'reflection.process_mode')
+			elif 'pds.reflection_refresh_mode' in item:
+				self.reflection_refresh_mode = self._str(item, 'pds.reflection_refresh_mode')
 			# Report Options
 			elif 'report.csv.delimiter' in item:
 				self.report_csv_delimiter = self._str(item, 'report.csv.delimiter')

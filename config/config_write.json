@@ -23,12 +23,13 @@
 		{"http_timeout":"10"},
 		{"source.retry_timedout":"false"},
 
-		{"space.process_mode":"create_overwrite"},
+		{"space.process_mode":"update"},
 		{"folder.process_mode":"create_overwrite"},
 		{"source.process_mode":"create_overwrite"},
 		{"pds.process_mode":"promote"},
 		{"vds.process_mode":"create_overwrite"},
 	    {"reflection.process_mode": "create_overwrite"},
+	    {"pds.reflection_refresh_mode": "refresh"},
 	  	{"wiki.process_mode": "create_overwrite"},
 		{"tag.process_mode": "process"},
 		{"home.process_mode": "process"},
@@ -50,7 +51,7 @@
 		{"vds.ignore_missing_acl_group":"True"},
 
 	  	{"space.filter": "*"},
-		{"space.exclude.filter": ""},
+		{"space.exclude.filter": "Dev"},
 		{"space.folder.filter":"*"},
 		{"space.folder.exclude.filter":""},
 
