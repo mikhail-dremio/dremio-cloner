@@ -1,15 +1,17 @@
 {"dremio_cloner": [
-  {"command":"get"},
-  {"source": [
+  {"command":"put"},
+  {"target": [
 	{"endpoint": "http://localhost:9047/"},
 	{"username": "<DREMIO-ADMIN-USER>"},
 	{"password": "<OPTIONAL_PASSWORD>"}]
   },
-  {"target": [
-	{"directory":"<TARGET_DIRECTORY_PATH>"},
-	{"overwrite": "False"}]
+  {"source": [
+	{"filename":"<SOURCE_JSON_FILE_NAME>"}]
   },
   {"options": [
+
+	{"dry_run":"False"},
+
 	{"logging.level":"logging.ERROR"},
 	{"logging.format":"%(levelname)s:%(asctime)s:%(message)s"},
 	{"logging.filename":"<OPTIONAL_LOG_FILE_NAME>"},
@@ -17,21 +19,32 @@
 
 	{"max_errors":"9999"},
 	{"http_timeout":"10"},
+	{"source.retry_timedout":"false"},
 
-	{"user.process_mode":"skip"},
-	{"group.process_mode":"skip"},
 	{"space.process_mode":"skip"},
-	{"source.process_mode":"process"},
-	{"reflection.process_mode": "process"},
-	{"folder.process_mode": "skip"},
-	{"vds.process_mode": "skip"},
-	{"pds.process_mode": "process"},
+	{"folder.process_mode":"skip"},
+	{"source.process_mode":"update_only"},
+	{"pds.process_mode":"promote"},
+	{"vds.process_mode":"skip"},
+	{"reflection.process_mode": "create_overwrite"},
+	{"pds.reflection_refresh_mode": "refresh"},
 	{"wlm.queue.process_mode": "skip"},
 	{"wlm.rule.process_mode": "skip"},
 	{"wiki.process_mode": "skip"},
 	{"tag.process_mode": "skip"},
 	{"home.process_mode": "skip"},
 	{"vote.process_mode": "skip"},
+
+	{"space.ignore_missing_acl_user":"True"},
+	{"space.ignore_missing_acl_group":"True"},
+	{"folder.ignore_missing_acl_user":"True"},
+	{"folder.ignore_missing_acl_group":"True"},
+	{"source.ignore_missing_acl_user":"True"},
+	{"source.ignore_missing_acl_group":"True"},
+	{"pds.ignore_missing_acl_user":"True"},
+	{"pds.ignore_missing_acl_group":"True"},
+	{"vds.ignore_missing_acl_user":"True"},
+	{"vds.ignore_missing_acl_group":"True"},
 
 	{"space.filter": "*"},
 	{"space.exclude.filter": ""},
@@ -49,6 +62,6 @@
 
 	{"vds.filter":"*"},
 	{"vds.exclude.filter":""},
-	{"vds.dependencies.process_mode":"ignore"}]
+	{"vds.max_hierarchy_depth":"10"}]
   }]
 }
