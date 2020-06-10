@@ -34,10 +34,12 @@ import getpass
 
 def main():
 	config = None
-	if len(sys.argv) != 2:
+
+	if len(sys.argv) != 2 and (len(sys.argv) != 4 or sys.argv[2] != '-p'):
 		print_usage()
 	else:
 		config = DremioClonerConfig(sys.argv[1])
+		obtain_password(config, sys.argv)
 		# Execute command
 		if config.command == DremioClonerConfig.CMD_GET:
 			get_dremio_environment(config)
@@ -56,14 +58,12 @@ def main():
 
 
 def print_usage():
-	print("""usage: dremio_cloner config_file
+	print("""usage: dremio_cloner config_file -p password
 Make sure the config file is correct. """)
 
 
 def get_dremio_environment(config):
 	logging.info("Executing command 'get'.")
-	if config.source_password is None or config.source_password == "":
-		config.source_password = getpass.getpass("Enter password:")
 	dremio = Dremio(config.source_endpoint, config.source_username, config.source_password, config.http_timeout, config.source_retry_timedout, config.source_verify_ssl)
 	reader = DremioReader(dremio, config)
 	dremio_data = reader.read_dremio_environment()
@@ -77,8 +77,6 @@ def put_dremio_environment(config):
 	logging.info("Executing command 'put'.")
 	file = DremioFile(config)
 	dremio_data = file.read_dremio_environment()
-	if config.target_password is None or config.target_password == "":
-		config.target_password = getpass.getpass("Enter password:")
 	dremio = Dremio(config.target_endpoint, config.target_username, config.target_password, config.http_timeout, verify_ssl=config.target_verify_ssl)
 	writer = DremioWriter(dremio, dremio_data, config)
 	writer.write_dremio_environment()
@@ -88,8 +86,6 @@ def put_dremio_environment(config):
 
 def report_acl(config):
 	logging.info("Executing command 'report-acl'.")
-	if config.source_password is None or config.source_password == "":
-		config.source_password = getpass.getpass("Enter password:")
 	dremio = Dremio(config.source_endpoint, config.source_username, config.source_password, config.http_timeout, config.source_retry_timedout, config.source_verify_ssl)
 	reader = DremioReader(dremio, config)
 	dremio_data = reader.read_dremio_environment()
@@ -101,8 +97,6 @@ def report_acl(config):
 
 def report_reflections(config):
 	logging.info("Executing command 'report-reflections'.")
-	if config.source_password is None or config.source_password == "":
-		config.source_password = getpass.getpass("Enter password:")
 	dremio = Dremio(config.source_endpoint, config.source_username, config.source_password, config.http_timeout, config.source_retry_timedout, config.source_verify_ssl)
 	dremio_report = DremioReportReflections(dremio, config)
 	dremio_report.process_dremio_reflections()
@@ -111,8 +105,6 @@ def report_reflections(config):
 
 def cascade_acl(config):
 	logging.info("Executing command 'cascade-acl'.")
-	if config.target_password is None or config.target_password == "":
-		config.target_password = getpass.getpass("Enter password:")
 	dremio = Dremio(config.target_endpoint, config.target_username, config.target_password, config.http_timeout, verify_ssl=config.target_verify_ssl)
 	cascader = DremioCascadeAcl(dremio, config)
 	cascader.cascade_acl()
@@ -122,8 +114,6 @@ def cascade_acl(config):
 
 def describe_job(config):
 	logging.info("Executing command 'describe-job'.")
-	if config.source_password is None or config.source_password == "":
-		config.source_password = getpass.getpass("Enter password:")
 	dremio = Dremio(config.source_endpoint, config.source_username, config.source_password, config.http_timeout, verify_ssl=config.source_verify_ssl)
 	describer = DremioDescribeJob(dremio, config)
 	if config.target_type == 'sql-dependencies':
@@ -131,6 +121,15 @@ def describe_job(config):
 	else:
 		print_usage()
 
+def obtain_password(config, argv):
+	# Try to get the password from the parameters first
+	if len(argv) == 4:
+		config.source_password = argv[3]
+		config.target_password = config.source_password
+	# Then check if one is present in the configuration file, else ask for password
+	elif config.source_password is None or config.source_password == "":
+		config.source_password = getpass.getpass("Enter password:")
+		config.target_password = config.source_password
 
 if __name__ == "__main__":
 	main()
