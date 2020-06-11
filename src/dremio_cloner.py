@@ -127,7 +127,7 @@ def obtain_password(config, argv):
 		config.source_password = argv[3]
 		config.target_password = config.source_password
 	# Then check if one is present in the configuration file, else ask for password
-	elif config.source_password is None or config.source_password == "":
+	elif (config.source_password is None or config.source_password == "") and (config.target_password is None or config.target_password == ""):
 		config.source_password = getpass.getpass("Enter password:")
 		config.target_password = config.source_password
 
