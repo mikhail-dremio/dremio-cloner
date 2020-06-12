@@ -60,6 +60,8 @@
 		{"source.folder.filter":"*"},
 		{"source.folder.exclude.filter":""},
 
+	  	{"reflection.filter_mode": "apply_vds_pds_filter"},
+
 		{"pds.filter":"*"},
 		{"pds.exclude.filter":""},
 	  	{"pds.list.useapi":"False"},

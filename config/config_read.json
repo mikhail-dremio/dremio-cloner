@@ -52,6 +52,7 @@
 	{"pds.list.useapi":"False"},
 
 	{"vds.filter":"*"},
+	{"vds.filter.tag":"*"},
 	{"vds.exclude.filter":""},
 	{"vds.dependencies.process_mode":"get"}]
   }]

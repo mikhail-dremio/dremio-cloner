@@ -83,13 +83,63 @@ class DremioClonerFilter():
 			self._logger.debug("match_pds_filter: skipping PDS " + pds['path'][-1] if 'path' in pds else pds['name'] + " as per job configuration")
 		return False
 
-	def match_vds_filter(self, vds, loginfo = True):
+	def match_vds_filter(self, vds, tags=None, loginfo = True):
 		if self._match_path(self._config._space_filter_re, self._config._space_exclude_filter_re, self._config._space_folder_filter_re, self._config._space_folder_exclude_filter_re, self._config._vds_filter_re, self._config._vds_exclude_filter_re, vds):
-			return True
+			if self._config.vds_filter_tag is None or self._config.vds_filter_tag == "*":
+				return True
+			elif tags is not None and self._match_tag(tags):
+				return True
 		if loginfo:
 			self._logger.debug("match_vds_filter: skipping VDS " + vds['path'][-1] if 'path' in vds else vds['name'] + " as per job configuration")
 		return False
 
+	def _match_tag(self, tags):
+		if 'tags' not in tags:
+			return False
+		for tag in tags['tags']:
+			if tag == self._config.vds_filter_tag:
+				return True
+		return False
+
+
+	def match_reflection_path(self, reflection_path):
+		if self._match_hierarchy_path(self._config._space_filter_re, self._config._space_exclude_filter_re, self._config._space_folder_filter_re, self._config._space_folder_exclude_filter_re, self._config._vds_filter_re, self._config._vds_exclude_filter_re, reflection_path):
+			return True
+		return False
+
+	def _match_hierarchy_path(self, root_re, root_exclusion_re, folder_re, folder_exclusion_re, object_re, object_exclusion_re, hierarchy_path):
+		if root_re is None:
+			return False
+		# Match root object (Space of Source)
+		if root_re.match(hierarchy_path[0]) is None:
+			return False
+		if root_exclusion_re is not None and root_exclusion_re.match(hierarchy_path[0]) is not None:
+			return False
+		# Match object
+		if object_re is not None and object_re.match(self._utils.normalize_path(hierarchy_path[-1])) is None:
+			return False
+		if object_exclusion_re is not None and object_exclusion_re.match(self._utils.normalize_path(hierarchy_path[1:])) is not None:
+			return False
+		# Match Folders. Note, child folders do not need to be matched if its parent match
+		if folder_re is None:
+			return False
+		else:
+			folder_matched = False
+			for i in range(len(hierarchy_path)):
+				if folder_re.match(self._utils.normalize_path(hierarchy_path[1:len(hierarchy_path) - i])) is not None:
+					folder_matched = True
+					break
+			if not folder_matched:
+				return False
+			if folder_exclusion_re is not None:
+				folder_exclusion_matched = False
+				for i in range(len(hierarchy_path)):
+					if folder_exclusion_re.match(self._utils.normalize_path(hierarchy_path[1:len(hierarchy_path) - i])) is not None:
+						folder_exclusion_matched = True
+						break
+				if folder_exclusion_matched:
+					return False
+		return True
 
 	def _match_path(self, root_re, root_exclusion_re, folder_re, folder_exclusion_re, object_re, object_exclusion_re, entity):
 		# If inclusion filter is not specified, nothing to process

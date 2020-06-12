@@ -23,6 +23,7 @@ from DremioWriter import DremioWriter
 from DremioReportAcl import DremioReportAcl
 from DremioReportReflections import DremioReportReflections
 from DremioCascadeAcl import DremioCascadeAcl
+from DremioDelete import DremioDelete
 from DremioDescribeJob import DremioDescribeJob
 from DremioClonerConfig import DremioClonerConfig
 from datetime import datetime
@@ -53,6 +54,8 @@ def main():
 			describe_job(config)
 		elif config.command == DremioClonerConfig.CMD_REPORT_REFLECTIONS:
 			report_reflections(config)
+		elif config.command == DremioClonerConfig.CMD_DELETE:
+			delete_objects(config)
 		else:
 			print_usage()
 
@@ -120,6 +123,16 @@ def describe_job(config):
 		dremio_data = describer.describe_job_sql_dependencies()
 	else:
 		print_usage()
+
+
+def delete_objects(config):
+	logging.info("Executing command '" + DremioClonerConfig.CMD_DELETE + "'.")
+	dremio = Dremio(config.target_endpoint, config.target_username, config.target_password, config.http_timeout, verify_ssl=config.target_verify_ssl)
+	deleter = DremioDelete(dremio, config)
+	deleter.delete()
+	logging.info("Command '" + DremioClonerConfig.CMD_DELETE + "' finished with " + str(deleter.get_errors_count()) + " error(s).")
+	print("Done with " + str(deleter.get_errors_count()) + " error(s). Please review log file for details.")
+
 
 def obtain_password(config, argv):
 	# Try to get the password from the parameters first

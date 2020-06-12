@@ -366,6 +366,11 @@ class DremioWriter:
 		if 'status' in reflection:
 			reflection.pop("status")
 		reflection_path = reflection['path']
+		# Match filters if requested
+		if self._config.reflection_filter_mode == "apply_vds_pds_filter":
+			if not self._filter.match_reflection_path(reflection_path):
+				return False
+		# Write Reflection
 		reflection.pop("path")
 		reflected_dataset = self._dremio_env.get_catalog_entity_by_path(self._utils.normalize_path(reflection_path))
 		if reflected_dataset is None:
@@ -678,7 +683,7 @@ class DremioWriter:
 
 
 	def _write_wiki(self, wiki, process_mode):
-		self._logger.debug("_write_wiki: processing reflection: " + str(wiki))
+		self._logger.debug("_write_wiki: processing wiki: " + str(wiki))
 		new_wiki_text = wiki['text']
 		wiki_path = wiki['path']
 		# Check if the wiki already exists
@@ -691,18 +696,18 @@ class DremioWriter:
 				self._logger.info("_write_wiki: Skipping wiki creation due to configuration wiki_process_mode. " + str(wiki))
 				return None
 			if self._config.dry_run:
-				self._logger.warn("_write_wiki: Dry Run, NOT Creating reflection: " + str(wiki))
+				self._logger.warn("_write_wiki: Dry Run, NOT Creating wiki: " + str(wiki))
 				return None
 			new_wiki = {"text":new_wiki_text}
 			new_wiki = self._dremio_env.update_wiki(existing_wiki_entity['id'], new_wiki, self._config.dry_run)
 			if new_wiki is None:
 				self._logger.error("_write_wiki: could not create " + str(wiki))
 				return None
-		else:  # Reflection already exists in the target environment
+		else:  # Wiki already exists in the target environment
 			if process_mode == 'create_only':
 				self._logger.info("_write_wiki: Found existing wiki and wiki_process_mode is set to create_only. Skipping " + str(wiki))
 				return None
-			# make sure there are changes to update as it will invalidate existing reflection data
+			# make sure there are changes to update as it will invalidate existing wiki data
 			if new_wiki_text == existing_wiki['text']:
 				# Nothing to do
 				self._logger.debug("_write_wiki: No pending changes. Skipping " + str(wiki))

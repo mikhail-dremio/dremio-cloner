@@ -16,14 +16,14 @@
 
 import requests
 import logging
-import urllib
 import json
 import time
-
+import sys
+import urllib
 
 ###
 # Dremio API wrapper.
-# TODO: replace with dremio-client
+#
 ###
 class Dremio:
 	# API URLs
@@ -78,6 +78,8 @@ class Dremio:
 		return self._api_get_json(self._catalog_url, source="list_catalog")
 
 	def get_catalog_entity_by_path(self, path, report_error=True):
+		if path[0] == '/':
+			path = path[1:]
 		return self._api_get_json(self._catalog_url_by_path + path, source="get_catalog_entity_by_path", report_error=report_error)
 
 	def get_catalog_entity_by_id(self, entity_id):
@@ -323,6 +325,12 @@ class Dremio:
 		return self._api_get_json(self._get_job_url + jobid + '/results?offset=' + str(offset) + '&limit=' + str(limit),
 								  source="get_job_info")
 
+	def delete_catalog_entity(self, entity_id, dry_run=True, report_error=True):
+		if dry_run:
+			logging.warn("delete_catalog_entity: Dry Run. Not submitting changes to API for delete entity: " + entity_id)
+			return
+		return self._api_delete(self._catalog_url + entity_id, source="delete_catalog_entity", report_error = report_error)
+
 	# Returns JSON if success or None
 	def _api_get_json(self, url, source="", report_error=True):
 		# Extract source
@@ -451,6 +459,51 @@ class Dremio:
 			self.errors_encountered = self.errors_encountered + 1
 			return None
 
+	# Returns JSON if success or None
+	def _api_delete(self, url, source="", report_error = True):
+		try:
+			response = requests.request("DELETE", self._endpoint + url, headers=self._headers, timeout=self._api_timeout, verify=self._verify_ssl)
+			if response.status_code == 200:
+				return response.json()
+			elif response.status_code == 204:
+				return None
+			elif response.status_code == 400:  # The supplied CatalogEntity object is invalid.
+				if report_error:
+					logging.error(source + ": received HTTP Response Code 400 for : <" + str(url) + ">" +
+								  self._get_error_message(response))
+				else:
+					logging.debug(source + ": received HTTP Response Code 400 for : <" + str(url) + ">" +
+								  self._get_error_message(response))
+			elif response.status_code == 403:  # User does not have permission to create the catalog entity.
+				logging.critical(source + ": received HTTP Response Code 403 for : <" + str(url) + ">" +
+								 self._get_error_message(response))
+				raise RuntimeError(
+					"Specified user does not have sufficient priviliges to create objects in the target Dremio Environment.")
+			elif response.status_code == 409:  # A catalog entity with the specified path already exists.
+				if report_error:
+					logging.error(source + ": received HTTP Response Code 409 for : <" + str(url) + ">" +
+								  self._get_error_message(response))
+				else:
+					logging.debug(source + ": received HTTP Response Code 409 for : <" + str(url) + ">" +
+								  self._get_error_message(response))
+			elif response.status_code == 404:  # Not found
+				logging.info(source + ": received HTTP Response Code 404 for : <" + str(url) + ">" +
+							 self._get_error_message(response))
+			else:
+				if report_error:
+					logging.error(source + ": received HTTP Response Code " + str(response.status_code) +
+								  " for : <" + str(url) + ">" + self._get_error_message(response))
+				else:
+					logging.debug(source + ": received HTTP Response Code " + str(response.status_code) +
+								  " for : <" + str(url) + ">" + self._get_error_message(response))
+			self.errors_encountered = self.errors_encountered + 1
+			return None
+		except requests.exceptions.Timeout:
+			# This situation might happen when an underlying object (file system eg) is not responding
+			logging.error(source + ": HTTP Request Timed-out: " + " <" + str(url) + ">")
+			self.errors_encountered = self.errors_encountered + 1
+			return None
+
 	def _get_error_message(self, response):
 		message = ""
 		try:
@@ -463,5 +516,7 @@ class Dremio:
 		return message
 
 	def _encode_http_param(self, path):
-		# urllib.quote_plus=urllib.quote # A fix for urlencoder to give %20
-		return urllib.quote_plus(path)
+		if sys.version_info.major > 2:
+			return urllib.parse.quote_plus(path)
+		else:
+			return urllib.quote_plus(path)

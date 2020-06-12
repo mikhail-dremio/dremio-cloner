@@ -32,6 +32,7 @@ class DremioClonerConfig():
 	CMD_DESCRIBE_JOB = 'describe-job'
 	CMD_REPORT_ACL = 'report-acl'
 	CMD_REPORT_REFLECTIONS = 'report-reflections'
+	CMD_DELETE = 'delete-beta'
 
 	# Config json code
 	cloner_conf_json = None
@@ -99,13 +100,15 @@ class DremioClonerConfig():
 	pds_ignore_missing_acl_user = False		# Flag to write a Source PDS if an ACL user is missing in the target Dremio environment
 	pds_ignore_missing_acl_group = False	# Flag to write a Source PDS if an ACL group is missing in the target Dremio environment
 	vds_filter = None						# Filter for VDS
+	vds_filter_tag = None					# Filter for VDS
 	vds_exclude_filter = None				# Exclusion Filter for VDS
 	vds_process_mode = None					# Flag to process VDS: process, skip, create_only, update_only, create_overwrite
 	vds_dependencies_process_mode = 'ignore' # Flag to process VDS dependencies (VDS and PDS): ignore, get
 	vds_ignore_missing_acl_user = False		# Flag to write a VDS if an ACL user is missing in the target Dremio environment
 	vds_ignore_missing_acl_group = False	# Flag to write a VDS if an ACL group is missing in the target Dremio environment
 	vds_max_hierarchy_depth = 100			# The max hierarchy depth to process
-	reflection_process_mode = None			# Flag to process VDS: process, skip, create_only, update_only, create_overwrite
+	reflection_process_mode = None			# Flag to process reflection: process, skip, create_only, update_only, create_overwrite
+	reflection_filter_mode = None			# Flag to filter reflection: apply_vds_pds_filter
 	reflection_refresh_mode = 'skip' 		# Flag to refresh reflections: refresh, skip
 	wlm_queue_process_mode = 'process'		# Flag to process WLM Queues: process, skip
 	wlm_rule_process_mode = 'process'		# Flag to process WLM Rules: process, skip
@@ -114,6 +117,9 @@ class DremioClonerConfig():
 	home_process_mode = 'process'			# Flag to process Homes: process, skip
 	vote_process_mode = 'process'			# Flag to process Votes: process, skip
 	acl_transformation = {}					# Contains all ACL tranformation definitions
+	# Delete VDS List
+	delete_vds = []							# List of VDS to delete from the target environment
+	delete_folders = []						# List of Folders to delete from the target environment
 
 
 	# Report options
@@ -290,6 +296,8 @@ class DremioClonerConfig():
 			elif 'vds.filter' in item:
 				self.vds_filter = self._str(item, 'vds.filter')
 				self._vds_filter_re = self._compile_pattern(self.vds_filter)
+			elif 'vds.filter.tag' in item:
+				self.vds_filter_tag = self._str(item, 'vds.filter.tag')
 			elif 'vds.exclude.filter' in item:
 				self.vds_exclude_filter = self._str(item, 'vds.exclude.filter')
 				self._vds_exclude_filter_re = self._compile_pattern(self.vds_exclude_filter)
@@ -302,6 +310,8 @@ class DremioClonerConfig():
 			# Reflection options
 			elif 'reflection.process_mode' in item:
 				self.reflection_process_mode = self._str(item, 'reflection.process_mode')
+			elif 'reflection.filter_mode' in item:
+				self.reflection_filter_mode = self._str(item, 'reflection.filter_mode')
 			elif 'pds.reflection_refresh_mode' in item:
 				self.reflection_refresh_mode = self._str(item, 'pds.reflection_refresh_mode')
 			# Report Options
@@ -327,6 +337,10 @@ class DremioClonerConfig():
 				f = open(acl_transformation_filename, "r")
 				self.acl_transformation = json.load(f)['acl-transformation']
 				f.close()
+			elif 'vds.delete_list' in item:
+				self.delete_vds = self._str_array(item, 'vds.delete_list')
+			elif 'folder.delete_list' in item:
+				self.delete_folders = self._str_array(item, 'folder.delete_list')
 
 	def _validate_configuration(self):
 		if (self.command is None):
@@ -380,6 +394,11 @@ class DremioClonerConfig():
 			return None
 
 	def _str(self, conf, param_name):
+		if (param_name in conf and not conf[param_name] == ""):
+			return conf[param_name]
+		return None
+
+	def _str_array(self, conf, param_name):
 		if (param_name in conf and not conf[param_name] == ""):
 			return conf[param_name]
 		return None

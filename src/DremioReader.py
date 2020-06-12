@@ -219,7 +219,8 @@ class DremioReader:
 			if dataset['datasetType'] == "PROMOTED" or dataset['datasetType'] == "DIRECT":
 				self._d.pds_list.append(entity)
 			elif dataset['datasetType'] == "VIRTUAL":
-				if self._filter.match_vds_filter(dataset):
+				tags = self._dremio_env.get_catalog_tags(entity['id'])
+				if self._filter.match_vds_filter(dataset, tags=tags):
 					self._d.vds_list.append(entity)
 			else:
 				self._logger.error("_read_dataset: Unexpected dataset type " + dataset['datasetType'] + " for " + self._utils.get_entity_desc(dataset) + ".")
@@ -244,8 +245,8 @@ class DremioReader:
 				self._logger.debug("_read_reflections: processing reflection " + reflection['datasetId'] + " path: " + str(reflection_path))
 				reflection["path"] = reflection_path
 				self._d.reflections.append(reflection)
-				self._read_acl(reflection)
-				self._read_wiki(reflection)
+#				self._read_acl(reflection)
+#				self._read_wiki(reflection)
 		else:
 			self._logger.debug("_read_reflections: skipping reflections processing as per job configuration")
 
