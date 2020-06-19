@@ -102,9 +102,13 @@ class DremioClonerFilter():
 		return False
 
 
-	def match_reflection_path(self, reflection_path):
-		if self._match_hierarchy_path(self._config._space_filter_re, self._config._space_exclude_filter_re, self._config._space_folder_filter_re, self._config._space_folder_exclude_filter_re, self._config._vds_filter_re, self._config._vds_exclude_filter_re, reflection_path):
-			return True
+	def match_reflection_path(self, reflection_path, reflection_dataset):
+		if reflection_dataset['type'] == 'VIRTUAL_DATASET':
+			if self._match_hierarchy_path(self._config._space_filter_re, self._config._space_exclude_filter_re, self._config._space_folder_filter_re, self._config._space_folder_exclude_filter_re, self._config._vds_filter_re, self._config._vds_exclude_filter_re, reflection_path):
+				return True
+		else:
+			if self._match_hierarchy_path(self._config._source_filter_re, self._config._source_exclude_filter_re, self._config._source_folder_filter_re, self._config._source_folder_exclude_filter_re, self._config._pds_filter_re, self._config._pds_exclude_filter_re, reflection_path):
+				return True
 		return False
 
 	def _match_hierarchy_path(self, root_re, root_exclusion_re, folder_re, folder_exclusion_re, object_re, object_exclusion_re, hierarchy_path):

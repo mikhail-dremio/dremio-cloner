@@ -51,7 +51,7 @@
 		{"vds.ignore_missing_acl_group":"True"},
 
 	  	{"space.filter": "*"},
-		{"space.exclude.filter": "Dev"},
+		{"space.exclude.filter": ""},
 		{"space.folder.filter":"*"},
 		{"space.folder.exclude.filter":""},
 

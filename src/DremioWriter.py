@@ -366,16 +366,16 @@ class DremioWriter:
 		if 'status' in reflection:
 			reflection.pop("status")
 		reflection_path = reflection['path']
-		# Match filters if requested
-		if self._config.reflection_filter_mode == "apply_vds_pds_filter":
-			if not self._filter.match_reflection_path(reflection_path):
-				return False
 		# Write Reflection
 		reflection.pop("path")
 		reflected_dataset = self._dremio_env.get_catalog_entity_by_path(self._utils.normalize_path(reflection_path))
 		if reflected_dataset is None:
 			self._logger.error("_write_reflection: Could not resolve dataset for " + self._utils.get_entity_desc(reflection))
 			return None
+		# Match filters if requested
+		if self._config.reflection_filter_mode == "apply_vds_pds_filter":
+			if not self._filter.match_reflection_path(reflection_path, reflected_dataset):
+				return False
 		reflection['datasetId'] = reflected_dataset['id']
 		# Check if the reflection already exists
 		existing_reflection = self._find_existing_reflection(reflection, reflected_dataset)
