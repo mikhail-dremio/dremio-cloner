@@ -272,11 +272,9 @@ class DremioReader:
 			wiki = self._dremio_env.get_catalog_wiki(entity['id'])
 			if wiki is not None:
 				wiki["entity_id"] = entity['id']
-				if entity['entityType'] == 'space' or entity['entityType'] == 'source':
+				if entity['entityType'] == 'space' or entity['entityType'] == 'source' or entity['entityType'] == 'home':
 					wiki['path'] = [entity['name']]
-#					wiki_json = [{"entity_id": entity['id'], "path": [entity['name']]}, wiki]
 				else:
-#					wiki_json = [{"entity_id": entity['id'], "path": entity['path']}, wiki]
 					wiki['path'] = entity['path']
 				if wiki not in self._d.wikis:
 					self._d.wikis.append(wiki)
