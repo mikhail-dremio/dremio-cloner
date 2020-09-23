@@ -284,6 +284,9 @@ class Dremio:
 			logging.warn("refresh_reflections_by_pds_path: Dry Run. Not submitting request to API.")
 			return
 		pds = self.get_catalog_entity_by_path(pds_entity_path)
+		if pds is None:
+			logging.error("refresh_reflections_by_pds_path: Could not locate entity for path: " + str(pds_entity_path))
+			return None
 		pds_entity_id = pds['id']
 		result =  self._api_post_json(self._catalog_url + pds_entity_id + "/" + self._refresh_reflections_postfix, None, source="refresh_reflections_by_pds_path")
 		return result
