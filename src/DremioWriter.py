@@ -690,6 +690,7 @@ class DremioWriter:
 		existing_wiki_entity = self._find_existing_dataset_by_path(self._utils.normalize_path(wiki_path))
 		if existing_wiki_entity is None:
 			self._logger.error("_write_wiki: Unable to resolve wiki's dataset for " + str(wiki))
+			return None
 		existing_wiki = self._dremio_env.get_catalog_wiki(existing_wiki_entity['id'])
 		if existing_wiki is None:  # Need to create new entity
 			if process_mode == 'update_only':

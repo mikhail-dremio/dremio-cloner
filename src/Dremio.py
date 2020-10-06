@@ -43,6 +43,8 @@ class Dremio:
 	_graph_url_postfix = "graph"
 	_refresh_reflections_postfix = "refresh"
 	_endpoint = ""
+	_username = ""					# Need to keep for expired token processing
+	_password = ""
 	_authtoken = ""
 	_headers = ""
 	_verify_ssl = None
@@ -61,9 +63,14 @@ class Dremio:
 		self._verify_ssl = verify_ssl
 		self._api_timeout = api_timeout
 		self._retry_timedout_source = retry_timedout_source
+		self._username = username
+		self._password = password
+		self._authenticate()
+
+	def _authenticate(self):
 		headers = {"Content-Type": "application/json"}
-		payload = '{"userName": "' + username + '","password": "' + password + '"}'
-		response = requests.request("POST", self._endpoint + self._login_url, data=payload, headers=headers, timeout=self._api_timeout, verify=verify_ssl)
+		payload = '{"userName": "' + self._username + '","password": "' + self._password + '"}'
+		response = requests.request("POST", self._endpoint + self._login_url, data=payload, headers=headers, timeout=self._api_timeout, verify=self._verify_ssl)
 		if response.status_code != 200:
 			logging.critical("Authentication Error " + str(response.status_code))
 			raise RuntimeError("Authentication error.")
@@ -335,7 +342,9 @@ class Dremio:
 		return self._api_delete(self._catalog_url + entity_id, source="delete_catalog_entity", report_error = report_error)
 
 	# Returns JSON if success or None
-	def _api_get_json(self, url, source="", report_error=True):
+	def _api_get_json(self, url, source="", report_error=True, reauthenticate=False):
+		if reauthenticate:
+			self._authenticate()
 		# Extract source
 		source_name = None
 		pos = url.find(self._catalog_url_by_path)
@@ -352,6 +361,8 @@ class Dremio:
 			if source_name in self._timed_out_sources and not self._retry_timedout_source:
 				raise requests.exceptions.Timeout()
 			response = requests.request("GET", self._endpoint + url, headers=self._headers, timeout=self._api_timeout, verify=self._verify_ssl)
+			if not reauthenticate:
+				response.status_code = 403
 			if response.status_code == 200:
 				return response.json()
 			elif response.status_code == 400:  # Bad Request
@@ -362,6 +373,14 @@ class Dremio:
 				if report_error:
 					logging.info(source + ": received HTTP Response Code " + str(response.status_code) +
 									" for : <" + str(url) + ">" + self._get_error_message(response))
+			elif response.status_code == 401 or response.status_code == 403:
+				# Try to reauthenticate since the token might expire
+				if not reauthenticate:
+					return self._api_get_json(url, source, report_error, True)
+				logging.critical(source + ": received HTTP Response Code " + str(response.status_code) +
+								 " for : <" + str(url) + ">" + self._get_error_message(response))
+				raise RuntimeError(
+					"Specified user does not have sufficient priviliges to create objects in the target Dremio Environment.")
 			else:
 				if report_error:
 					logging.error(source + ": received HTTP Response Code " + str(response.status_code) +
@@ -381,7 +400,9 @@ class Dremio:
 			return None
 
 	# Returns JSON if success or None
-	def _api_post_json(self, url, json_data, source="", as_json=True):
+	def _api_post_json(self, url, json_data, source="", as_json=True, reauthenticate=False):
+		if reauthenticate:
+			self._authenticate()
 		try:
 			if json_data is None:
 				response = requests.request("POST", self._endpoint + url, headers=self._headers, timeout=self._api_timeout, verify=self._verify_ssl)
@@ -397,7 +418,10 @@ class Dremio:
 			elif response.status_code == 400:
 				logging.error(source + ": received HTTP Response Code " + str(response.status_code) +
 							  " for : <" + str(url) + ">" + self._get_error_message(response))
-			elif response.status_code == 403:  # User does not have permission
+			elif response.status_code == 401 or response.status_code == 403:
+				# Try to reauthenticate since the token might expire
+				if not reauthenticate:
+					return self._api_post_json(url, json_data, source, as_json, False)
 				logging.critical(source + ": received HTTP Response Code " + str(response.status_code) +
 								 " for : <" + str(url) + ">" + self._get_error_message(response))
 				raise RuntimeError(
@@ -420,7 +444,9 @@ class Dremio:
 			return None
 
 	# Returns JSON if success or None
-	def _api_put_json(self, url, json_data, source="", report_error = True):
+	def _api_put_json(self, url, json_data, source="", report_error = True, reauthenticate=False):
+		if reauthenticate:
+			self._authenticate()
 		try:
 			response = requests.request("PUT", self._endpoint + url, json=json_data, headers=self._headers, timeout=self._api_timeout, verify=self._verify_ssl)
 			if response.status_code == 200:
@@ -432,9 +458,12 @@ class Dremio:
 				else:
 					logging.debug(source + ": received HTTP Response Code 400 for : <" + str(url) + ">" +
 								  self._get_error_message(response))
-			elif response.status_code == 403:  # User does not have permission to create the catalog entity.
-				logging.critical(source + ": received HTTP Response Code 403 for : <" + str(url) + ">" +
-								 self._get_error_message(response))
+			elif response.status_code == 401 or response.status_code == 403:
+				# Try to reauthenticate since the token might expire
+				if not reauthenticate:
+					return self._api_put_json(url, json_data, source, report_error, False)
+				logging.critical(source + ": received HTTP Response Code " + str(response.status_code) +
+								 " for : <" + str(url) + ">" + self._get_error_message(response))
 				raise RuntimeError(
 					"Specified user does not have sufficient priviliges to create objects in the target Dremio Environment.")
 			elif response.status_code == 409:  # A catalog entity with the specified path already exists.
@@ -463,7 +492,9 @@ class Dremio:
 			return None
 
 	# Returns JSON if success or None
-	def _api_delete(self, url, source="", report_error = True):
+	def _api_delete(self, url, source="", report_error = True, reauthenticate=False):
+		if reauthenticate:
+			self._authenticate()
 		try:
 			response = requests.request("DELETE", self._endpoint + url, headers=self._headers, timeout=self._api_timeout, verify=self._verify_ssl)
 			if response.status_code == 200:
@@ -477,9 +508,12 @@ class Dremio:
 				else:
 					logging.debug(source + ": received HTTP Response Code 400 for : <" + str(url) + ">" +
 								  self._get_error_message(response))
-			elif response.status_code == 403:  # User does not have permission to create the catalog entity.
-				logging.critical(source + ": received HTTP Response Code 403 for : <" + str(url) + ">" +
-								 self._get_error_message(response))
+			elif response.status_code == 401 or response.status_code == 403:
+				# Try to reauthenticate since the token might expire
+				if not reauthenticate:
+					return self._api_delete(url, source, report_error, False)
+				logging.critical(source + ": received HTTP Response Code " + str(response.status_code) +
+								 " for : <" + str(url) + ">" + self._get_error_message(response))
 				raise RuntimeError(
 					"Specified user does not have sufficient priviliges to create objects in the target Dremio Environment.")
 			elif response.status_code == 409:  # A catalog entity with the specified path already exists.
