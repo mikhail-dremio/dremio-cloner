@@ -244,7 +244,10 @@ class Dremio:
 					pds_list.append(entity)
 		return pds_list
 
+	_cached_schemas = {}
 	def _normalize_schema(self, schema):
+		if schema in self._cached_schemas:
+			return self._cached_schemas[schema]
 		path = schema.split('.')
 		normalized_path = ""
 		for i in range(0, len(path)):
@@ -254,6 +257,7 @@ class Dremio:
 				normalized_path = normalized_path + '/'
 			else:
 				normalized_path = normalized_path + '.'
+		self._cached_schemas[schema] = normalized_path
 		return normalized_path
 
 	def create_catalog_entity(self, entity, dry_run=True):
@@ -361,8 +365,6 @@ class Dremio:
 			if source_name in self._timed_out_sources and not self._retry_timedout_source:
 				raise requests.exceptions.Timeout()
 			response = requests.request("GET", self._endpoint + url, headers=self._headers, timeout=self._api_timeout, verify=self._verify_ssl)
-			if not reauthenticate:
-				response.status_code = 403
 			if response.status_code == 200:
 				return response.json()
 			elif response.status_code == 400:  # Bad Request
