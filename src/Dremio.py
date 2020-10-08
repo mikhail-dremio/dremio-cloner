@@ -132,80 +132,36 @@ class Dremio:
 		return self._api_get_json(self._wlm_vote_url, source="list_votes")
 
 	# This method has to be refactored when DX-16597 is resolved
-	def list_pds(self, source_filter=None, source_exclude_filter=None,
+	def list_pds(self, sources,
 				 source_folder_filter=None, source_folder_exclude_filter=None,
 				 pds_filter=None, pds_exclude_filter=None, pds_error_list=None):
 		pds_list = []
 		# Check filters for complete PDS suppression
-		if source_filter is None or (source_exclude_filter is not None and source_exclude_filter == "*"):
+		if not sources:
 			return pds_list
 		# Retrieve PDS list from Dremio meta-schema
 		sql = " SELECT TABLE_SCHEMA, TABLE_NAME FROM \\\"INFORMATION_SCHEMA\\\".\\\"TABLES\\\" WHERE TABLE_TYPE = 'TABLE' "
 
-		schema_filter = None
-		# Clean up source filter
-		if source_filter is not None:
-			source_filter = source_filter.replace("*", "%")
-			# Remove leading dot
-			if source_filter[0:1] == '.':
-				source_filter = source_filter[1:]
-			# Remove trailing dot
-			if source_filter[-1:] == '.':
-				source_filter = source_filter[:-1]
-		# Clean up folder filter
-		if source_folder_filter is not None:
-			source_folder_filter = source_folder_filter.replace("*", "%")
-			# Remove leading dot
-			if source_folder_filter[0:1] == '.':
-				source_folder_filter = source_folder_filter[1:]
-			# Remove trailing dot
-			if source_folder_filter[-1:] == '.':
-				source_folder_filter = source_folder_filter[:-1]
-		# Add dots as needed
-		if source_filter is not None and source_folder_filter is not None:
-			schema_filter = source_filter + '.' + source_folder_filter
-		elif source_filter is None and source_folder_filter is not None:
-			schema_filter = '%.' + source_folder_filter
-		elif source_filter is not None and source_folder_filter is None:
-			schema_filter = source_filter + '.%'
-		if schema_filter is not None:
-			sql = sql + " and TABLE_SCHEMA like '" + schema_filter + "'"
+		schema_filter = ''
+		for source in sources:
+			schema_filter = schema_filter + " or TABLE_SCHEMA like '" + source['name'] + ".%'"
+		sql = sql + ' and ( ' + schema_filter[4:] + ' ) '
 
-		schema_exclude_filter = None
-		# Clean up source exclude filter
-		if source_exclude_filter is not None:
-			source_exclude_filter = source_exclude_filter.replace("*", "%")
-			# Remove leading dot
-			if source_exclude_filter[0:1] == '.':
-				source_exclude_filter = source_exclude_filter[1:]
-			# Remove trailing dot
-			if source_exclude_filter[-1:] == '.':
-				source_exclude_filter = source_exclude_filter[:-1]
-		# Clean up folder exclude filter
+		if source_folder_filter is not None and source_folder_filter != "*":
+			source_folder_filter = source_folder_filter.replace("*", "%")
+			sql = sql + " and TABLE_SCHEMA like '%." + source_folder_filter + "'"
+
 		if source_folder_exclude_filter is not None:
 			source_folder_exclude_filter = source_folder_exclude_filter.replace("*", "%")
-			# Remove leading dot
-			if source_folder_exclude_filter[0:1] == '.':
-				source_folder_exclude_filter = source_folder_exclude_filter[1:]
-			# Remove trailing dot
-			if source_folder_exclude_filter[-1:] == '.':
-				source_folder_exclude_filter = source_folder_exclude_filter[:-1]
-		# Add dots as needed
-		if source_exclude_filter is not None and source_folder_exclude_filter is not None:
-			schema_exclude_filter = source_exclude_filter + '.' + source_folder_exclude_filter
-		elif source_exclude_filter is None and source_folder_exclude_filter is not None:
-			schema_exclude_filter = '%.' + source_folder_exclude_filter
-		elif source_exclude_filter is not None and source_folder_exclude_filter is None:
-			schema_exclude_filter = source_exclude_filter + '.%'
-		if schema_exclude_filter is not None:
-			sql = sql + " and TABLE_SCHEMA not like '" + schema_exclude_filter + "' "
+			sql = sql + " and TABLE_SCHEMA not like '%." + source_folder_exclude_filter + "'"
 
-		if pds_filter is not None:
+		if pds_filter is not None and pds_filter != "*":
 			pds_filter = pds_filter.replace("*", "%")
 			sql = sql + " and TABLE_NAME like '" + pds_filter + "' "
 		if pds_exclude_filter is not None:
 			pds_exclude_filter = pds_exclude_filter.replace("*", "%")
 			sql = sql + " and TABLE_NAME not like '" + pds_exclude_filter + "' "
+
 		jobid = self.submit_sql(sql)
 		# Wait for the job to complete. Should only take a moment
 		while True:

@@ -63,6 +63,13 @@ class DremioClonerFilter():
 			return False
 
 	def match_source_filter(self, container, loginfo = True):
+		# First filter by source types
+		if container['type'] != 'CONTAINER' and (container['entityType'] != 'source' or container['type'] not in self._config.source_filter_types):
+			return False
+		# Also filter by source names
+		if container['type'] != 'CONTAINER' and (container['entityType'] != 'source' or container['name'] not in self._config.source_filter_names):
+			return False
+		# Finally filter by filter pattern
 		if self._match_path(self._config._source_filter_re, self._config._source_exclude_filter_re, None, None, None, None, container):
 			return True
 		if loginfo:

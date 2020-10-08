@@ -82,6 +82,8 @@ class DremioClonerConfig():
 	space_ignore_missing_acl_user = False	# Flag to write a Space if an ACL user is missing in the target Dremio environment
 	space_ignore_missing_acl_group = False	# Flag to write a Space if an ACL group is missing in the target Dremio environment
 	source_filter = None					# Filter for Source entity type
+	source_filter_names = []				# List of Sources to process if not empty
+	source_filter_types = []				# List of Source Types to process if not empty
 	source_exclude_filter = None			# Exclusion Filter for Source entity type
 	source_cascade_acl_origin_override_object = None	# An ACL from this object will be utilized instead of the Source ACL as an ACL to set inside all PDS in the Source
 	source_folder_filter = None				# Filter for Source Folder entity type
@@ -249,6 +251,10 @@ class DremioClonerConfig():
 				self.space_ignore_missing_acl_group = self._bool(item, 'space.ignore_missing_acl_group')
 			elif 'source.process_mode' in item:
 				self.source_process_mode = self._str(item, 'source.process_mode')
+			elif 'source.filter.names' in item:
+				self.source_filter_names = self._array(item, 'source.filter.names')
+			elif 'source.filter.types' in item:
+				self.source_filter_types = self._array(item, 'source.filter.types')
 			elif 'source.filter' in item:
 				self.source_filter = self._str(item, 'source.filter')
 				self._source_filter_re = self._compile_pattern(self.source_filter)
@@ -381,6 +387,15 @@ class DremioClonerConfig():
 				return eval(conf[param_name].title())
 			except NameError:
 				self._logger.fatal("Invalid boolean value for parameter " + param_name)
+		else:
+			return None
+
+	def _array(self, conf, param_name):
+		if (param_name in conf):
+			try:
+				return conf[param_name]
+			except:
+				self._logger.fatal("Invalid array value for parameter " + param_name)
 		else:
 			return None
 

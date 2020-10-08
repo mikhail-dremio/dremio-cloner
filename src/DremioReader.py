@@ -51,9 +51,9 @@ class DremioReader:
 	# Read all data from the source Dremio environemnt
 	# Return DremioData
 	def read_dremio_environment(self):
+		self._read_catalog()
 		if not self._config.pds_list_useapi and self._filter.is_pds_in_scope():
 			self._read_all_pds()
-		self._read_catalog()
 		self._read_reflections()
 		self._read_rules()
 		self._read_queues()
@@ -66,8 +66,8 @@ class DremioReader:
 		if self._config.pds_list_useapi or not self._filter.is_pds_in_scope():
 			self._logger.info("_read_all_pds: skipping PDS reading as per pds.filter configuration.")
 		else:
-			pds_list = self._dremio_env.list_pds(self._config.source_filter,
-												 self._config.source_exclude_filter,
+			pds_list = self._dremio_env.list_pds(self._d.sources,
+												 self._config.source_folder_filter, self._config.source_folder_exclude_filter,
 												 self._config.pds_filter, self._config.pds_exclude_filter,
 												 pds_error_list=self._d.pds_error_list)
 			for pds in pds_list:
@@ -134,13 +134,15 @@ class DremioReader:
 				self._d.containers.append(container)
 				entity = self._get_entity_definition_by_id(container)
 				if entity is not None:
-					self._logger.debug("_read_source: " + self._utils.get_entity_desc(entity))
-					self._d.sources.append(entity)
-					self._read_acl(entity)
-					self._read_wiki(entity)
-					# Depending on the useapi flag, PDSs can be collected via INFORMATION_SCHEMA. See also DX16597
-					if self._config.pds_list_useapi:
-						self._read_source_children(entity)
+					# Re-validate the filter with entity since there is more details in entity
+					if self._filter.match_source_filter(entity):
+						self._logger.debug("_read_source: " + self._utils.get_entity_desc(entity))
+						self._d.sources.append(entity)
+						self._read_acl(entity)
+						self._read_wiki(entity)
+						# Depending on the useapi flag, PDSs can be collected via INFORMATION_SCHEMA. See also DX16597
+						if self._config.pds_list_useapi:
+							self._read_source_children(entity)
 				else:
 					self._logger.error("_read_source: error reading entity for container: " + self._utils.get_entity_desc(container))
 		else:
