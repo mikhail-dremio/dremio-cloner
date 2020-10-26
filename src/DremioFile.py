@@ -277,7 +277,7 @@ class DremioFile():
 			f.close()
 			self._collect_directory(os.path.join(source_directory, 'homes'), dremio_data.homes, dremio_data.folders, dremio_data.homes)
 			self._collect_directory(os.path.join(source_directory, 'spaces'), dremio_data.spaces, dremio_data.folders, dremio_data.vds_list)
-			self._collect_directory(os.path.join(source_directory, 'sources'), dremio_data.spaces, None, dremio_data.pds_list)
+			self._collect_directory(os.path.join(source_directory, 'sources'), dremio_data.sources, None, dremio_data.pds_list)
 			self._collect_directory(os.path.join(source_directory, 'reflections'), None, None, dremio_data.reflections)
 			self._collect_directory(os.path.join(source_directory, 'referenced_users'), None, None, dremio_data.referenced_users)
 			self._collect_directory(os.path.join(source_directory, 'referenced_groups'), None, None, dremio_data.referenced_groups)
