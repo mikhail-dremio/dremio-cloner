@@ -38,6 +38,8 @@ class DremioCascadeAcl:
 	# List of PDS for processing
 	_pds_list = None
 
+	_source_list = []
+
 	def __init__(self, dremio, config):
 		self._config = config
 		self._dremio_env = dremio
@@ -47,10 +49,27 @@ class DremioCascadeAcl:
 
 	def cascade_acl(self):
 		if not self._config.pds_list_useapi:
-			self._pds_list = self._dremio_env.list_pds(self._config.source_filter, self._config.source_exclude_filter,
+			# Retrieve list of filtered sources first as it is required for pds_list
+			containers = self._dremio_env.list_catalog()['data']
+			for container in containers:
+				if container['containerType'] == "SOURCE":
+					if self._filter.match_source_filter(container):
+						if 'id' not in container:
+							self._logger.error("cascade_acl: bad data, skipping entity: " + self._utils.get_entity_desc(container))
+							continue
+						entity = self._dremio_env.get_catalog_entity_by_id(container['id'])
+						if entity is None:
+							self._logger.error("cascade_acl: error reading entity for container: " + self._utils.get_entity_desc(container))
+							continue
+						# Re-validate the filter with entity since there is more details in entity
+						if self._filter.match_source_filter(entity):
+							self._source_list.append(entity)
+			# Retrieve list of filtered PDS
+			self._pds_list = self._dremio_env.list_pds(self._source_list,
 													   self._config.source_folder_filter, self._config.source_folder_exclude_filter,
 												   	   self._config.pds_filter, self._config.pds_exclude_filter)
 			self._logger.info("cascade_acl: Not using API for PDS retrieval. Filtered PDS are NOT reported in the log.")
+		# Process ACLs
 		containers = self._dremio_env.list_catalog()['data']
 		for container in containers:
 			self._logger.debug("cascade_acl: processing container " + self._utils.get_entity_desc(container))
@@ -119,7 +138,7 @@ class DremioCascadeAcl:
 			child_entity = self._get_entity_definition(child)
 			if child_entity is None:
 				self._logger.error("_process_source_children: error reading entity for: " + self._utils.get_entity_desc(child))
-			if child['type'] == "DATASET":
+			elif child['type'] == "DATASET":
 				if self._filter.match_pds_filter(child_entity):
 					self._logger.debug("_process_source_children: applying ACL to PDS: " + self._utils.get_entity_desc(child_entity))
 					self._apply_acl(child_entity, acl)
