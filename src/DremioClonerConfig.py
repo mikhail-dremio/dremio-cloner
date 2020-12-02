@@ -73,6 +73,7 @@ class DremioClonerConfig():
 	user_process_mode = None				# Flag to process User: process, skip
 	group_process_mode = None				# Flag to process Group: process, skip
 	space_filter = None						# Filter for Space entity type
+	space_filter_names = []					# List of Spaces to process if not empty
 	space_exclude_filter = None				# Exclusion Filter for Space entity type
 	space_cascade_acl_origin_override_object = None	# An ACL from this object will be utilized instead of the Space ACL as an ACL to set inside all Folders and VDSs in the Space
 	space_folder_filter = None				# Filter for Space Folder entity type
@@ -231,6 +232,8 @@ class DremioClonerConfig():
 			elif 'space.filter' in item:
 				self.space_filter = self._str(item, 'space.filter')
 				self._space_filter_re = self._compile_pattern(self.space_filter)
+			elif 'space.filter.names' in item:
+				self.space_filter_names = self._array(item, 'space.filter.names')
 			elif 'space.exclude.filter' in item:
 				self.space_exclude_filter = self._str(item, 'space.exclude.filter')
 				self._space_exclude_filter_re = self._compile_pattern(self.space_exclude_filter)

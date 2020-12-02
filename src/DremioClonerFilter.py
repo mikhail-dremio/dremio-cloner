@@ -37,6 +37,10 @@ class DremioClonerFilter():
 				self._config.pds_process_mode == 'process'
 
 	def match_space_filter(self, container, loginfo = False):
+		# Filter by space names
+		if container['type'] == 'CONTAINER' and self._config.space_filter_names != [] and (container['containerType'] != 'SPACE' or container['path'][0] not in self._config.space_filter_names):
+			return False
+		# Filter by space name pattern
 		if self._match_path(self._config._space_filter_re, self._config._space_exclude_filter_re, None, None, None, None, container):
 			return True
 		if loginfo:
