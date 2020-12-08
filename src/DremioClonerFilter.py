@@ -38,7 +38,13 @@ class DremioClonerFilter():
 
 	def match_space_filter(self, container, loginfo = False):
 		# Filter by space names
-		if container['type'] == 'CONTAINER' and self._config.space_filter_names != [] and (container['containerType'] != 'SPACE' or container['path'][0] not in self._config.space_filter_names):
+		if self._config.space_filter_names != [] and ( \
+			# reading from Dremio env
+			('type' in container and container['type'] == 'CONTAINER' and \
+				(container['containerType'] != 'SPACE' or container['path'][0] not in self._config.space_filter_names)) \
+			# reading from json file
+			or ('entityType' in container and container['entityType'] == 'space' and \
+				container['name'] not in self._config.space_filter_names) ):
 			return False
 		# Filter by space name pattern
 		if self._match_path(self._config._space_filter_re, self._config._space_exclude_filter_re, None, None, None, None, container):
