@@ -115,28 +115,31 @@ class DremioWriter:
 				self._write_wiki(wiki, self._config.wiki_process_mode)
 
 	def _write_space(self, entity, process_mode, ignore_missing_acl_user_flag, ignore_missing_acl_group_flag):
-		self._logger.debug("_write_space: processing entity: " + self._utils.get_entity_desc(entity))
 		if self._filter.match_space_filter(entity):
+			self._logger.debug("_write_space: processing entity: " + self._utils.get_entity_desc(entity))
 			return self._write_entity(entity, process_mode, ignore_missing_acl_user_flag, ignore_missing_acl_group_flag)
 		else:
+			self._logger.debug("_write_space: skipping entity: " + self._utils.get_entity_desc(entity))
 			return None
 
 	def _write_source(self, entity, process_mode, ignore_missing_acl_user_flag, ignore_missing_acl_group_flag):
-		self._logger.debug("_write_source: processing entity: " + self._utils.get_entity_desc(entity))
 		if self._filter.match_source_filter(entity):
+			self._logger.debug("_write_source: processing entity: " + self._utils.get_entity_desc(entity))
 			return self._write_entity(entity, process_mode, ignore_missing_acl_user_flag, ignore_missing_acl_group_flag)
 		else:
+			self._logger.debug("_write_source: skipping entity: " + self._utils.get_entity_desc(entity))
 			return None
 
 	def _write_folder(self, entity, process_mode, ignore_missing_acl_user_flag, ignore_missing_acl_group_flag):
-		self._logger.debug("_write_folder: processing entity: " + self._utils.get_entity_desc(entity))
 		# Drop ACL for HOME folders
 		if entity['path'][0][:1] == '@' and 'accessControlList' in entity:
 			entity.pop("accessControlList")
 		# Do not apply space.folder.filter to Home folders
 		if entity['path'][0][:1] == '@' or self._filter.match_space_folder_filter(entity):
+			self._logger.debug("_write_folder: processing entity: " + self._utils.get_entity_desc(entity))
 			return self._write_entity(entity, process_mode, ignore_missing_acl_user_flag, ignore_missing_acl_group_flag)
 		else:
+			self._logger.debug("_write_folder: skipping entity: " + self._utils.get_entity_desc(entity))
 			return None
 
 	def _retrieve_users_groups(self):

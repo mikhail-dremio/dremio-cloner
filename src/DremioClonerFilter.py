@@ -36,15 +36,15 @@ class DremioClonerFilter():
 				self._config.pds_exclude_filter != '*' and \
 				self._config.pds_process_mode == 'process'
 
-	def match_space_filter(self, container, loginfo = False):
-		# Filter by space names
+	def _match_listed_space_names(self, container):
 		if self._config.space_filter_names != [] and ( \
-			# reading from Dremio env
-			('type' in container and container['type'] == 'CONTAINER' and \
-				(container['containerType'] != 'SPACE' or container['path'][0] not in self._config.space_filter_names)) \
-			# reading from json file
-			or ('entityType' in container and container['entityType'] == 'space' and \
-				container['name'] not in self._config.space_filter_names) ):
+						('path' in container and container['path'][0] not in self._config.space_filter_names) \
+						or ('name' in container and container['name'] not in self._config.space_filter_names) ):
+			return False
+		return True
+
+	def match_space_filter(self, container, loginfo = False):
+		if not self._match_listed_space_names(container):
 			return False
 		# Filter by space name pattern
 		if self._match_path(self._config._space_filter_re, self._config._space_exclude_filter_re, None, None, None, None, container):
@@ -54,6 +54,8 @@ class DremioClonerFilter():
 		return False
 
 	def match_space_folder_filter(self, container, loginfo = True):
+		if not self._match_listed_space_names(container):
+			return False
 		if self._match_path(self._config._space_filter_re, self._config._space_exclude_filter_re, self._config._space_folder_filter_re, self._config._space_folder_exclude_filter_re, None, None, container):
 			return True
 		if loginfo:
@@ -101,6 +103,8 @@ class DremioClonerFilter():
 		return False
 
 	def match_vds_filter(self, vds, tags=None, loginfo = True):
+		if not self._match_listed_space_names(vds):
+			return False
 		if self._match_path(self._config._space_filter_re, self._config._space_exclude_filter_re, self._config._space_folder_filter_re, self._config._space_folder_exclude_filter_re, self._config._vds_filter_re, self._config._vds_exclude_filter_re, vds):
 			if self._config.vds_filter_tag is None or self._config.vds_filter_tag == "*":
 				return True
