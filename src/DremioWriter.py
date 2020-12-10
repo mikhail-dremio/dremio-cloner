@@ -68,7 +68,7 @@ class DremioWriter:
 	def write_dremio_environment(self):
 		self._retrieve_users_groups()
 		if self._config.acl_transformation != {} and self._d.referenced_users == [] and self._d.referenced_groups == []:
-			self._logger.fatal("Cannot process ACL Transformation without Referenced Users or Referenced Groups present in the Source Dremio Data.")
+			self._logger.warn("ACL Transformation has been defined while Referenced Users and Referenced Groups are not present in the Source Dremio Data.")
 
 		if self._config.reflection_process_mode != 'skip':
 			self._existing_reflections = self._dremio_env.list_reflections()['data']
@@ -459,11 +459,13 @@ class DremioWriter:
 				# Note, taking a copy of the list for proper removal of items
 				for user_def in acl['users'][:]:
 					new_acl_principal = self._find_matching_principal_for_userid(user_def['id'])
-					if new_acl_principal is None:
+					if new_acl_principal == "NONE":
+						self._logger.info("_process_acl: Source User " + user_def['id'] + " is removed from ACL definition. " + self._utils.get_entity_desc(entity))
+					elif new_acl_principal is None:
 						if ignore_missing_acl_user_flag:
-							self._logger.warn("Source User " + user_def['id'] + " not found in the target Dremio Environment. User is removed from ACL definition as per ignore_missing_acl_user configuration. " + self._utils.get_entity_desc(entity))
+							self._logger.warn("_process_acl: Source User " + user_def['id'] + " not found in the target Dremio Environment. User is removed from ACL definition as per ignore_missing_acl_user configuration. " + self._utils.get_entity_desc(entity))
 						else:
-							self._logger.error("Source User " + user_def['id'] + " not found in the target Dremio Environment. ACL Entry cannot be processed as per ignore_missing_acl_user configuration. " + self._utils.get_entity_desc(entity))
+							self._logger.error("_process_acl: Source User " + user_def['id'] + " not found in the target Dremio Environment. ACL Entry cannot be processed as per ignore_missing_acl_user configuration. " + self._utils.get_entity_desc(entity))
 					elif "user" in new_acl_principal:
 						transformed_acl['users'].append({"id":new_acl_principal["user"],"permissions":user_def['permissions']})
 					elif "group" in new_acl_principal:
@@ -472,12 +474,14 @@ class DremioWriter:
 				# Note, taking a copy of the list for proper removal of items
 				for group_def in acl['groups'][:]:
 					new_acl_principal = self._find_matching_principal_for_groupid(group_def['id'])
-					if new_acl_principal is None:
+					if new_acl_principal == "NONE":
+						self._logger.info("_process_acl: Source Group " + group_def['id'] + " is removed from ACL definition. " + self._utils.get_entity_desc(entity))
+					elif new_acl_principal is None:
 						if ignore_missing_acl_group_flag:
-							self._logger.warn("Source Group " + group_def['id'] + " not found in the target Dremio Environment. Group is removed from ACL definition as per ignore_missing_acl_group configuration. " + self._utils.get_entity_desc(entity))
+							self._logger.warn("_process_acl: Source Group " + group_def['id'] + " not found in the target Dremio Environment. Group is removed from ACL definition as per ignore_missing_acl_group configuration. " + self._utils.get_entity_desc(entity))
 						else:
 							# Flag is not set - return error status
-							self._logger.error("Source Group " + group_def['id'] + " not found in the target Dremio Environment. ACL Entry cannot be processed as per ignore_missing_acl_group configuration. " + self._utils.get_entity_desc(entity))
+							self._logger.error("_process_acl: Source Group " + group_def['id'] + " not found in the target Dremio Environment. ACL Entry cannot be processed as per ignore_missing_acl_group configuration. " + self._utils.get_entity_desc(entity))
 					elif "user" in new_acl_principal:
 						transformed_acl['users'].append({"id":new_acl_principal["user"],"permissions":group_def['permissions']})
 					elif "group" in new_acl_principal:
@@ -490,8 +494,11 @@ class DremioWriter:
 		for user in self._d.referenced_users:
 			if user['id'] == userid:
 				transformed_principal = self._find_acl_transformation_by_username(user['name'])
+				if transformed_principal == "NONE":
+					self._logger.info("_find_matching_principal_for_userid: Source User " + user['name'] + " [" + user['id'] + "] is mapped as NONE.")
+					return "NONE"
 				# If no tranformation is defined for this user
-				if transformed_principal is None:
+				elif transformed_principal is None:
 					for target_user in self._target_dremio_users:
 						if target_user['name'] == user['name']:
 							return {"user":target_user['id']}
@@ -505,7 +512,9 @@ class DremioWriter:
 	def _find_acl_transformation_by_username(self, username):
 		for item in self._config.acl_transformation:
 			if 'user' in item['source'] and item['source']['user'] == username:
-				if "user" in item['target']:
+				if "NONE" in item['target']:
+					return "NONE"
+				elif "user" in item['target']:
 					for target_user in self._target_dremio_users:
 						if target_user['name'] == item['target']['user']:
 							return {"user":target_user['id']}
@@ -522,6 +531,9 @@ class DremioWriter:
 		for group in self._d.referenced_groups:
 			if group['id'] == groupid:
 				transformed_principal = self._find_acl_transformation_by_groupname(group['name'])
+				if transformed_principal == "NONE":
+					self._logger.info("_find_matching_principal_for_groupid: Source Group " + group['name'] + " [" + group['id'] + "] is mapped as NONE.")
+					return "NONE"
 				# If no transformation is defined for this group
 				if transformed_principal is None:
 					for target_group in self._target_dremio_groups:
@@ -538,7 +550,9 @@ class DremioWriter:
 	def _find_acl_transformation_by_groupname(self, groupname):
 		for item in self._config.acl_transformation:
 			if 'group' in item['source'] and item['source']['group'] == groupname:
-				if "user" in item['target']:
+				if "NONE" in item['target']:
+					return "NONE"
+				elif "user" in item['target']:
 					for target_user in self._target_dremio_users:
 						if target_user['name'] == item['target']['user']:
 							return {"user":target_user['id']}
