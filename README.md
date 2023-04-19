@@ -1,4 +1,4 @@
-# Dremio Cloner moved to a new location https://github.com/deane-dremio/dremio-cloner. 
+# Dremio Cloner has moved on! Check out *dremio-toolkit* at the new location https://github.com/ucesys/dremio-toolkit. 
 
 Dremio Cloner is a python-based utility for Dremio Enterprise. It supports the following commands: get, put, cascade-acl, report-acl, report-reflections.
 
